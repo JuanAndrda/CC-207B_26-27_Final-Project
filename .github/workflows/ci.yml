@@ -1,0 +1,28 @@
+# Checks every push and pull request: formatting, analyzer and tests.
+# The Flutter app lives in B/AgosUgnayan, so every step runs there.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: B/AgosUgnayan
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      # Real Firebase settings are never committed, so use the placeholder.
+      - name: Use placeholder Firebase settings
+        run: cp tool/firebase_options_example.dart lib/firebase_options.dart
+      - run: flutter pub get
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze
+      - run: flutter test
