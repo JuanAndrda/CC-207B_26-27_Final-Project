@@ -25,6 +25,8 @@ class AppStrings {
       'Could not connect. Check your internet and try again.';
   static const String timeoutError =
       'This is taking too long. Please try again.';
+  static const String permissionError =
+      'You are not allowed to do this. Try logging out and in again.';
 
   // Discard changes dialog
   static const String discardTitle = 'Discard changes?';
@@ -47,9 +49,23 @@ class AppStrings {
   /// Error for a field that is longer than [max] characters.
   static String tooLong(int max) => 'Keep this under $max characters.';
 
-  // Setup placeholder (replaced by login in the next PR)
-  static const String setupDone = 'Setup is ready.';
-  static const String firebaseConnected = 'Firebase connected';
+  static const String nameTooShort = 'Enter your name, at least 2 letters.';
+  static const String selectRequired = 'Please choose one.';
+  static const String dateRequired = 'Please pick a date.';
+
+  // Firebase setup check (shown when lib/firebase_options.dart is a placeholder)
+  static const String firebaseNotSetUpTitle = 'Firebase is not set up yet';
   static const String firebaseNotSetUp =
-      'Firebase not set up yet. See the README.';
+      'Run `flutterfire configure` in this folder, then restart the app. '
+      'The README explains each step.';
+
+  // Logging out
+  static const String logOut = 'Log out';
+  static const String logOutTitle = 'Log out?';
+  static const String logOutMessage =
+      'You will need your email and password to log in again.';
+  static const String loggedOut = 'You are logged out.';
+
+  // AI label, shown on anything the AI filled in
+  static const String aiGenerated = 'AI-generated';
 }

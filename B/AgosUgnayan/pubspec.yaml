@@ -1,5 +1,5 @@
 name: agosugnayan
-description: "A new Flutter project."
+description: "AgosUgnayan: farmers in Iloilo sell crops directly to local buyers."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -9,15 +9,12 @@ environment:
 dependencies:
   cloud_firestore: ^7.1.0
   firebase_ai: ^5.1.0
-  firebase_app_check: ^0.5.1
   firebase_auth: ^7.0.1
   firebase_core: ^5.1.0
   fl_chart: ^1.3.0
   flutter:
     sdk: flutter
-  go_router: ^18.1.2
   intl: ^0.20.3
-  provider: ^6.1.5+1
   shared_preferences: ^2.5.6
 
 dev_dependencies:

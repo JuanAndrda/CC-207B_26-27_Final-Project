@@ -14,6 +14,15 @@ class Validators {
     return null;
   }
 
+  /// A person's name: at least 2 letters, at most 60 characters.
+  static String? name(String? value) {
+    final empty = required(value);
+    if (empty != null) return empty;
+    if (value!.trim().length < 2) return AppStrings.nameTooShort;
+    if (value.trim().length > 60) return AppStrings.tooLong(60);
+    return null;
+  }
+
   /// A simple email check: something@something.something
   static String? email(String? value) {
     final empty = required(value);

@@ -15,6 +15,15 @@ void main() {
     test('accepts text', () => expect(Validators.required('Talong'), isNull));
   });
 
+  group('name', () {
+    test('accepts a normal name', () {
+      expect(Validators.name('Pedro Santos'), isNull);
+    });
+    test('rejects one letter', () {
+      expect(Validators.name('P'), AppStrings.nameTooShort);
+    });
+  });
+
   group('email', () {
     test('accepts a normal email', () {
       expect(Validators.email('pedro@example.com'), isNull);

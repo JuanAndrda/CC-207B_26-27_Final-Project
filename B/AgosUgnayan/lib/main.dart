@@ -1,13 +1,15 @@
 // App entry point: catches every error so it gets logged, connects to
-// Firebase, then starts the app with our theme and router.
+// Firebase, then starts the app with our theme on the start screen.
 
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-import 'app_router.dart';
 import 'firebase_options.dart';
+import 'screens/start_screen.dart';
 import 'utils/app_logger.dart';
 import 'utils/strings.dart';
 import 'utils/theme.dart';
@@ -26,10 +28,16 @@ void main() {
   }, (error, stack) => AppLogger.error('Uncaught error', error, stack));
 }
 
+/// True when the app was started with --dart-define=USE_EMULATOR=true.
+/// Then it uses the Firebase Emulator on this computer instead of our real
+/// Firebase project, so we can test without internet or a project.
+const bool useEmulator = bool.fromEnvironment('USE_EMULATOR');
+
 /// Connects to Firebase using lib/firebase_options.dart.
 /// Returns false (instead of crashing) when the file still has placeholder
 /// values or the connection fails, so the app can explain what to do.
 Future<bool> connectFirebase() async {
+  if (useEmulator) return connectEmulator();
   final options = DefaultFirebaseOptions.currentPlatform;
   if (options.apiKey == 'REPLACE_ME') {
     AppLogger.info('Firebase skipped: run `flutterfire configure` first.');
@@ -44,28 +52,42 @@ Future<bool> connectFirebase() async {
   }
 }
 
-/// The root widget: applies the theme and the router.
-class AgosUgnayanApp extends StatefulWidget {
+/// Connects to the local Firebase Emulator (see README, "Test without a
+/// Firebase project"). "demo-" project ids never touch real Firebase.
+Future<bool> connectEmulator() async {
+  try {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: 'demo-key',
+        appId: '1:1:web:1',
+        messagingSenderId: '1',
+        projectId: 'demo-agosugnayan',
+      ),
+    );
+    await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
+    FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+    AppLogger.info('Using the Firebase Emulator on this computer.');
+    return true;
+  } catch (e, stack) {
+    AppLogger.error('Could not connect to the emulator', e, stack);
+    return false;
+  }
+}
+
+/// The root widget: applies the theme and opens the start screen.
+class AgosUgnayanApp extends StatelessWidget {
   const AgosUgnayanApp({super.key, required this.firebaseReady});
 
   final bool firebaseReady;
 
   @override
-  State<AgosUgnayanApp> createState() => _AgosUgnayanAppState();
-}
-
-class _AgosUgnayanAppState extends State<AgosUgnayanApp> {
-  // Created once here, not in build(), so hot reload keeps the current page.
-  late final _router = buildRouter(firebaseReady: widget.firebaseReady);
-
-  @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+    return MaterialApp(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      routerConfig: _router,
-      // On web, keep the phone layout from Figma centered on wide screens.
+      home: StartScreen(firebaseReady: firebaseReady),
+      // On web, keep the phone-sized layout centered on wide screens.
       builder: (context, child) => ColoredBox(
         color: AppColors.border,
         child: Center(
