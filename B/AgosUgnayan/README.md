@@ -5,8 +5,27 @@ A mobile and web app that helps smallholder farmers in Iloilo Province (starting
 CC 207B Final Project (Applications Development and Emerging Technologies), WVSU, section B.
 
 - **Client:** smallholder farmers in Leon, Iloilo
-- **Users:** Farmer, Buyer (household or business), Admin (enters monthly reference prices)
-- **Not included:** payments, cart, delivery and ratings. The app connects people, and the deal happens in their own chat.
+- **Users:** Farmer, Buyer (households and businesses), Admin (enters monthly reference prices)
+- **Not included:** payments, cart, delivery, ratings, maps and language settings. The app connects people, and the deal happens in their own chat.
+
+## Core features (team of 5 needs 6, AI included)
+
+| # | Feature | Who uses it | Main files |
+|---|---|---|---|
+| F1 | **Crop Listings**: add, edit and delete crops with a validated form, Undo after delete | Farmer | `my_crops_screen.dart`, `crop_form_screen.dart`, `listing_service.dart` |
+| F2 | **Marketplace**: browse, search, filter by crop and town, 20 at a time, listing details and farmer profile | Buyer | `marketplace_screen.dart`, `listing_detail_screen.dart`, `farmer_profile_screen.dart` |
+| F3 | **AI Listing Assistant**: type a note like "50 kilos kamatis, 45 pesos" and Gemini fills in the crop form | Farmer | `ai_assistant_box.dart`, `ai_service.dart`, `ai_listing_suggestion.dart` |
+| F4 | **Messages**: live chat between a buyer and a farmer | Both | `inbox_screen.dart`, `chat_screen.dart`, `message_service.dart` |
+| F5 | **Buyer Requests**: buyers post what they need, farmers see it under Buyer Demand | Both | `my_requests_screen.dart`, `request_form_screen.dart`, `buyer_demand_screen.dart` |
+| F6 | **Reference Prices**: monthly PSA farmgate prices with a 12-month chart and an offline copy; the admin enters them | Farmer, Admin | `price_list_screen.dart`, `price_detail_screen.dart`, `admin_price_form_screen.dart` |
+
+Also: **Following** (buyers follow crop listings or farmers, shown on two tabs) and **Profile** (your details, with Log out at the bottom). Login, Register, Following and Profile are supporting screens; they don't count as core features.
+
+### Tabs per role
+
+| Farmer | Buyer | Admin |
+|---|---|---|
+| My Crops, Demand, Prices, Messages, Profile | Market, Following, Requests, Messages, Profile | Prices, Profile |
 
 ## Tech stack
 
@@ -14,7 +33,7 @@ CC 207B Final Project (Applications Development and Emerging Technologies), WVSU
 |---|---|
 | Flutter | 3.47.7 (stable) |
 | Dart | 3.13.5 |
-| Firebase | Auth (email/password), Cloud Firestore, AI Logic (Gemini), App Check |
+| Firebase | Auth (email/password), Cloud Firestore, AI Logic (Gemini) |
 | Targets | Web and Android |
 
 ## Packages
@@ -23,16 +42,13 @@ CC 207B Final Project (Applications Development and Emerging Technologies), WVSU
 |---|---|
 | `firebase_core` | Connects the app to our Firebase project; every other Firebase package needs it. |
 | `firebase_auth` | Email and password login and registration. |
-| `cloud_firestore` | Our online database for users, listings, requests, chats and prices. |
+| `cloud_firestore` | Our online database for users, listings, requests, chats, following and prices. |
 | `firebase_ai` | Calls Gemini for the AI Listing Assistant without putting an API key in the app. |
-| `firebase_app_check` | Proves requests come from our real app, so others can't abuse our AI and database. |
-| `go_router` | Moves between screens using simple paths like `/marketplace`. |
-| `provider` | Shares the logged-in user and services with every screen. |
 | `intl` | Formats pesos, dates and months, e.g. "₱45.00" and "Aug 2026". |
 | `shared_preferences` | Saves the last loaded reference prices on the phone for offline use. |
 | `fl_chart` | Draws the 12-month reference price chart. |
 
-Ask the team before adding any other package.
+Navigation uses Flutter's built-in `Navigator.push` / `pop` (no routing package), the same way as in our class activities.
 
 ## Setup (each member, once)
 
@@ -42,21 +58,53 @@ Ask the team before adding any other package.
    ```
    flutter pub get
    ```
-4. Connect your laptop to our Firebase project. Ask the team leader to add your Google account to the Firebase project first.
+4. Copy the placeholder Firebase settings so the code compiles:
+   ```
+   cp tool/firebase_options_example.dart lib/firebase_options.dart
+   ```
+
+### Option A: try everything without a Firebase project (emulator)
+
+This runs a fake Firebase on your laptop with demo accounts and data. Good for coding and testing. You need Node.js and Java 21+.
+
+```
+npm install -g firebase-tools
+firebase emulators:start --only auth,firestore --project demo-agosugnayan --config firebase.emulator.json
+```
+
+In a second terminal:
+```
+node tool/seed_emulator.mjs
+flutter run -d chrome --dart-define=USE_EMULATOR=true
+```
+
+Log in with `farmer@demo.ph`, `buyer@demo.ph` or `admin@demo.ph`, password `demo1234`. The emulator forgets everything when you stop it; run the seed script again after restarting. The AI assistant does not work in the emulator, so it shows its fallback message, which is a good way to demo the fallback.
+
+### Option B: the real Firebase project
+
+1. The team leader creates the Firebase project in the Firebase console and:
+   - turns on **Authentication → Email/Password**,
+   - creates a **Cloud Firestore** database,
+   - turns on **AI Logic** with the **Gemini Developer API** (free tier),
+   - adds every member's Google account to the project.
+2. Each member connects their laptop:
    ```
    npm install -g firebase-tools
    firebase login
    dart pub global activate flutterfire_cli
    flutterfire configure --platforms=android,web
    ```
-   Pick our AgosUgnayan Firebase project when asked. This creates `lib/firebase_options.dart` and `android/app/google-services.json`. Both are in `.gitignore` because they hold our Firebase keys. **Never commit them.**
+   This creates `lib/firebase_options.dart` and `android/app/google-services.json`. Both are in `.gitignore` because they hold our Firebase keys. **Never commit them.**
+3. Upload the security rules and indexes once (team leader):
+   ```
+   firebase deploy --only firestore:rules,firestore:indexes --config firebase.emulator.json --project <your-project-id>
+   ```
+4. Make the admin account: register normally, then in the Firebase console open `users/<that user's id>` and change `role` to `admin`. The app never lets anyone pick admin.
 5. Run the app:
    ```
    flutter run -d chrome
    ```
-   The first screen says **Firebase connected** when step 4 worked. If it says **Firebase not set up yet**, repeat step 4.
-
-No Firebase yet? Copy the placeholder so the code compiles: `cp tool/firebase_options_example.dart lib/firebase_options.dart`.
+   If the first screen says **Firebase is not set up yet**, repeat step 2.
 
 ## How we work
 
@@ -78,19 +126,31 @@ GitHub Actions runs format, analyze and test on every push and pull request (`.g
 
 ```
 lib/
-  main.dart        App start, error catching, Firebase connection
-  app_router.dart  All screen paths (go_router)
-  screens/         One file per full page
-  widgets/         Reusable pieces (AsyncStateView, confirm dialog)
-  models/          Data classes with fromJson/toJson
+  main.dart        App start, error catching, Firebase (or emulator) connection
+  screens/         One file per full page; home_screen.dart holds the bottom tabs
+  widgets/         Reusable pieces (cards, buttons, form fields, AI box, state view)
+  models/          Data classes with fromMap/toMap
   services/        The only code that talks to Firebase and the AI
-  utils/           Theme, strings, validators, logger, SnackBar helpers
+  utils/           Theme, strings, constants, validators, formatting, logger
 assets/fonts/      Inter and Barlow Condensed from the Figma design (Open Font License)
 test/              Unit and widget tests
-docs/              Checklist, AI Usage Log, Topic Coverage Matrix
-tool/              Placeholder Firebase settings used by CI
+docs/              Checklist, AI Usage Log, Topic Coverage Matrix, AI Feature Spec, limitations
+tool/              Placeholder Firebase settings (for CI) and the emulator seed script
+firestore.rules    Who can read and write what in Firestore
 ```
+
+## Firestore data
+
+| Collection | What's in it |
+|---|---|
+| `users/{uid}` | name, email, role (farmer, buyer, admin), town, about, createdAt, consentAt |
+| `users/{uid}/following/{targetId}` | type (listing or farmer), title, subtitle, createdAt |
+| `listings/{id}` | farmerId, farmerName, crop, quantity, unit, price, town, harvestDate, description, aiAssisted, createdAt |
+| `requests/{id}` | buyerId, buyerName, crop, quantity, unit, targetPrice, town, neededBy, notes, createdAt |
+| `chats/{uidA_uidB}` | participants, names, lastMessage, lastMessageAt |
+| `chats/{id}/messages/{id}` | senderId, text, createdAt |
+| `prices/{crop}_{yyyy-MM}` | crop, month, price, enteredBy, enteredAt |
 
 ## Design
 
-Screens follow the v3 row of our Figma file: https://www.figma.com/design/6iDTiJCeqccRiDczkkpmsF/AgosUgnayan-Prototype. Colors, sizes and fonts are in `lib/utils/theme.dart`, and all text is in `lib/utils/strings.dart`.
+Colors, sizes and fonts come from the v3 row of our Figma file: https://www.figma.com/design/6iDTiJCeqccRiDczkkpmsF/AgosUgnayan-Prototype, and live in `lib/utils/theme.dart`. Shared text (buttons, errors, validation messages) is in `lib/utils/strings.dart`; text used by only one screen is written in that screen so it's easy to find.
