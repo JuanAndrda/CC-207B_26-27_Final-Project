@@ -1,0 +1,63 @@
+// Firestore security rules for AgosUgnayan.
+// Deploy with: firebase deploy --only firestore:rules
+// Rule of thumb: everyone must be logged in; people can only change their
+// own things; only the admin can write prices.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Profiles: anyone logged in can read (to show names); you can create
+    // and edit only your own, and you can't make yourself admin.
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if isMe(uid) && request.resource.data.role in ['farmer', 'buyer'];
+      allow update: if isMe(uid) && request.resource.data.role == resource.data.role;
+
+      // Following: private to each user.
+      match /following/{targetId} {
+        allow read, write: if isMe(uid);
+      }
+    }
+
+    // Listings: farmers create their own; only the owner edits or deletes.
+    match /listings/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && myRole() == 'farmer'
+        && request.resource.data.farmerId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.farmerId == request.auth.uid;
+    }
+
+    // Buyer requests: buyers create their own; only the owner edits or deletes.
+    match /requests/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && myRole() == 'buyer'
+        && request.resource.data.buyerId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.buyerId == request.auth.uid;
+    }
+
+    // Chats: only the two people in the chat can read or write it.
+    match /chats/{chatId} {
+      allow read, update: if signedIn() && request.auth.uid in resource.data.participants;
+      allow create: if signedIn() && request.auth.uid in request.resource.data.participants;
+
+      match /messages/{messageId} {
+        allow read: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow create: if signedIn() && request.resource.data.senderId == request.auth.uid
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      }
+    }
+
+    // Reference prices: everyone logged in reads, only the admin writes.
+    match /prices/{id} {
+      allow read: if signedIn();
+      allow write: if signedIn() && myRole() == 'admin';
+    }
+  }
+}
