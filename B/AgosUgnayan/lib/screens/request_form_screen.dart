@@ -1,0 +1,218 @@
+// F5 Buyer Requests: the Post / Edit request form, with validation and a
+// "Discard changes?" warning.
+
+import 'package:flutter/material.dart';
+
+import '../models/buyer_request.dart';
+import '../services/auth_service.dart';
+import '../services/request_service.dart';
+import '../utils/app_exception.dart';
+import '../utils/constants.dart';
+import '../utils/format.dart';
+import '../utils/snackbars.dart';
+import '../utils/theme.dart';
+import '../utils/validators.dart';
+import '../widgets/confirm_dialog.dart';
+import '../widgets/date_field.dart';
+import '../widgets/dropdown_field.dart';
+import '../widgets/loading_button.dart';
+
+/// Form to post a new request, or edit [request] when it is given.
+/// Closes with `true` when something was saved.
+class RequestFormScreen extends StatefulWidget {
+  const RequestFormScreen({super.key, this.request});
+
+  final BuyerRequest? request;
+
+  @override
+  State<RequestFormScreen> createState() => _RequestFormScreenState();
+}
+
+class _RequestFormScreenState extends State<RequestFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _quantityController = TextEditingController();
+  final _targetPriceController = TextEditingController();
+  final _notesController = TextEditingController();
+  String? _crop;
+  String? _unit = 'kg';
+  String? _town = AuthService.currentUser?.town;
+  DateTime? _neededBy;
+  bool _isSaving = false;
+  bool _hasChanges = false;
+
+  bool get _isEditing => widget.request != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final request = widget.request;
+    if (request != null) {
+      _crop = request.crop;
+      _unit = request.unit;
+      _town = request.town;
+      _neededBy = request.neededBy;
+      _quantityController.text = formatQuantity(request.quantity);
+      _targetPriceController.text =
+          request.targetPrice?.toStringAsFixed(2) ?? '';
+      _notesController.text = request.notes;
+    }
+    // Old profiles might have a town that is not in our list.
+    if (!kTowns.contains(_town)) _town = null;
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _targetPriceController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  /// The target price is optional, but if typed it must be a valid price.
+  String? _validateTargetPrice(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    return Validators.price(value);
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    final buyer = AuthService.currentUser!;
+    final targetText = _targetPriceController.text.trim();
+    final request = BuyerRequest(
+      id: widget.request?.id ?? '',
+      buyerId: buyer.id,
+      buyerName: buyer.name,
+      crop: _crop!,
+      quantity: double.parse(_quantityController.text.trim()),
+      unit: _unit!,
+      targetPrice: targetText.isEmpty ? null : double.parse(targetText),
+      town: _town!,
+      neededBy: _neededBy!,
+      notes: _notesController.text.trim(),
+      createdAt: widget.request?.createdAt ?? DateTime.now(),
+    );
+    try {
+      await RequestService().save(request);
+      if (!mounted) return;
+      showMessage(context, _isEditing ? 'Request updated.' : 'Request posted.');
+      // Navigator.pop closes the screen even when PopScope says canPop:
+      // false. PopScope only stops the back button and back gesture.
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      showError(context, friendlyMessage(e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_hasChanges,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final discard = await showDiscardChangesDialog(context);
+        if (discard && context.mounted) Navigator.of(context).pop(false);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing ? 'EDIT REQUEST' : 'POST REQUEST'),
+        ),
+        body: Form(
+          key: _formKey,
+          // setState so PopScope knows there are unsaved changes now.
+          onChanged: () {
+            if (!_hasChanges) setState(() => _hasChanges = true);
+          },
+          child: ListView(
+            padding: const EdgeInsets.all(AppSizes.pagePadding),
+            children: [
+              const Text(
+                'Tell farmers what you need. They can message you with offers.',
+              ),
+              const SizedBox(height: AppSizes.fieldGap),
+              DropdownField(
+                label: 'Crop',
+                items: kCrops,
+                value: _crop,
+                onChanged: (value) => setState(() => _crop = value),
+              ),
+              const SizedBox(height: AppSizes.fieldGap),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _quantityController,
+                      decoration: const InputDecoration(labelText: 'Quantity'),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.positiveNumber,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.small),
+                  Expanded(
+                    child: DropdownField(
+                      label: 'Unit',
+                      items: kUnits,
+                      value: _unit,
+                      onChanged: (value) => setState(() => _unit = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.fieldGap),
+              TextFormField(
+                controller: _targetPriceController,
+                decoration: InputDecoration(
+                  labelText: 'Target price per ${_unit ?? 'unit'} (optional)',
+                  prefixText: '₱ ',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: _validateTargetPrice,
+              ),
+              const SizedBox(height: AppSizes.fieldGap),
+              DateField(
+                label: 'Needed by',
+                value: _neededBy,
+                firstDate: DateTime.now(),
+                onChanged: (date) => setState(() {
+                  _neededBy = date;
+                  _hasChanges = true;
+                }),
+              ),
+              const SizedBox(height: AppSizes.fieldGap),
+              DropdownField(
+                label: 'Delivery town',
+                items: kTowns,
+                value: _town,
+                onChanged: (value) => setState(() => _town = value),
+              ),
+              const SizedBox(height: AppSizes.fieldGap),
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notes (optional)',
+                  hintText: 'e.g. For a carinderia, weekly order',
+                ),
+                maxLines: 3,
+                maxLength: 300,
+                validator: Validators.maxLength(300),
+              ),
+              const SizedBox(height: AppSizes.sectionGap),
+              LoadingButton(
+                label: _isEditing ? 'Save changes' : 'Post request',
+                isLoading: _isSaving,
+                onPressed: _save,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
