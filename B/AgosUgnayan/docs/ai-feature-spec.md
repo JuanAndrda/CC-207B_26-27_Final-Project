@@ -8,7 +8,7 @@ Farmers write in English, Hiligaynon, Filipino or a mix, with spelling variation
 
 ## Service and model
 - `firebase_ai` package (Firebase AI Logic) with the Gemini Developer API.
-- Model: `gemini-2.5-flash` (one constant in `lib/services/ai_service.dart`, `AiService.modelName`).
+- Model: `gemini-3.5-flash` (one constant in `lib/services/ai_service.dart`, `AiService.modelName`).
 - No API key in the app: Firebase AI Logic holds it on Google's side.
 - `temperature: 0` and `responseMimeType: application/json` so the answer is steady and machine-readable.
 

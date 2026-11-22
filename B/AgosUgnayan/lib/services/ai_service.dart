@@ -16,7 +16,7 @@ import '../utils/privacy_filter.dart';
 /// Asks Gemini to read a farmer's note and suggest listing details.
 class AiService {
   /// The Gemini model to use. If Google retires it, change only this line.
-  static const String modelName = 'gemini-2.5-flash';
+  static const String modelName = 'gemini-3.5-flash';
 
   /// How long we wait before giving up and letting the farmer type manually.
   static const Duration timeout = Duration(seconds: 20);
