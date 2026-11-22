@@ -17,7 +17,7 @@ CC 207B Final Project (Applications Development and Emerging Technologies), WVSU
 | F3 | **AI Listing Assistant**: type a note like "50 kilos kamatis, 45 pesos" and Gemini fills in the crop form | Farmer | `ai_assistant_box.dart`, `ai_service.dart`, `ai_listing_suggestion.dart` |
 | F4 | **Messages**: live chat between a buyer and a farmer | Both | `inbox_screen.dart`, `chat_screen.dart`, `message_service.dart` |
 | F5 | **Buyer Requests**: buyers post what they need, farmers see it under Buyer Demand | Both | `my_requests_screen.dart`, `request_form_screen.dart`, `buyer_demand_screen.dart` |
-| F6 | **Reference Prices**: monthly PSA farmgate prices with a 12-month chart and an offline copy; the admin enters them | Farmer, Admin | `price_list_screen.dart`, `price_detail_screen.dart`, `admin_price_form_screen.dart` |
+| F6 | **Reference Prices**: monthly PSA farmgate prices with a 12-month chart and an offline copy; the admin downloads them from PSA OpenSTAT with one button (or types one in) | Farmer, Admin | `price_list_screen.dart`, `price_detail_screen.dart`, `admin_price_form_screen.dart`, `psa_service.dart` |
 
 Also: **Following** (buyers follow crop listings or farmers, shown on two tabs) and **Profile** (your details, with Log out at the bottom). Login, Register, Following and Profile are supporting screens; they don't count as core features.
 
@@ -47,6 +47,7 @@ Also: **Following** (buyers follow crop listings or farmers, shown on two tabs) 
 | `intl` | Formats pesos, dates and months, e.g. "₱45.00" and "Aug 2026". |
 | `shared_preferences` | Saves the last loaded reference prices on the phone for offline use. |
 | `fl_chart` | Draws the 12-month reference price chart. |
+| `http` | Downloads farmgate prices from the PSA OpenSTAT API (free, no key). |
 
 Navigation uses Flutter's built-in `Navigator.push` / `pop` (no routing package), the same way as in our class activities.
 

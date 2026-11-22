@@ -5,7 +5,7 @@
 - **Chat** loads the newest 50 messages of a conversation; older ones are not shown.
 - **Buyer Demand** shows the 50 soonest open requests.
 - **Following a listing** saves its title and price at that moment; if the farmer edits the price later, the Following list shows the old text until the buyer opens it.
-- **Reference prices** are typed in by the admin from PSA OpenSTAT each month; they are not imported automatically.
+- **Reference prices** come from PSA OpenSTAT when the admin taps "Get latest PSA prices"; they do not update by themselves. PSA publishes a few months late (in Nov 2026 the newest month was June 2026), so the app always shows the month next to each price.
 - **Admin** can only add prices. Managing users and removing posts is done in the Firebase console.
 - The **AI assistant** needs the real Firebase project with AI Logic turned on; it falls back to the manual form in the emulator.
 - **App Check** is set to "Unenforced (monitoring only)" for Firebase AI Logic, because the app does not use App Check yet. Google will turn enforcement on automatically on January 21, 2027; after that the AI only works if we add App Check (reCAPTCHA for web) or unenforce it again.
@@ -22,5 +22,5 @@
 - Price alerts and notifications when a followed farmer posts a crop.
 - Crop photos (Firebase Storage).
 - Hiligaynon and Filipino translations.
-- Automatic monthly PSA price import.
+- Importing PSA prices automatically every month (now the admin taps a button).
 - Reporting and moderation tools for the admin.

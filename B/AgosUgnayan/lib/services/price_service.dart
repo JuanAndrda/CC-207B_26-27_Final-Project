@@ -64,6 +64,28 @@ class PriceService {
     });
   }
 
+  /// Saves many prices at once (the PSA import). Each price uses the same
+  /// document id as [save] (crop_month), so importing again updates the
+  /// price instead of adding a duplicate. Admin only.
+  Future<void> saveMany(List<PriceRecord> records, String adminId) {
+    return runSafely('save PSA prices', () async {
+      // A batch writes everything together: all of it is saved, or none.
+      // Firestore allows 500 writes per batch, so split bigger imports.
+      for (var start = 0; start < records.length; start += 450) {
+        final batch = FirebaseFirestore.instance.batch();
+        for (final record in records.skip(start).take(450)) {
+          batch.set(_prices.doc(record.docId), {
+            ...record.toMap(),
+            'source': 'PSA OpenSTAT',
+            'enteredBy': adminId,
+            'enteredAt': FieldValue.serverTimestamp(),
+          });
+        }
+        await batch.commit();
+      }
+    });
+  }
+
   /// The newest price for [crop] from [records], or null if there is none.
   static PriceRecord? latestFor(String crop, List<PriceRecord> records) {
     final forCrop = historyFor(crop, records);

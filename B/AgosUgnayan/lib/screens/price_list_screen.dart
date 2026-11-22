@@ -1,15 +1,18 @@
 // F6 Reference Prices: the latest monthly price of every crop, with the
 // change from the month before. Works offline using the saved copy.
-// The admin also gets an "Add price" button here.
+// The admin also gets "Get latest PSA prices" (downloads real prices from
+// PSA OpenSTAT) and "Add price" (type one price by hand) here.
 
 import 'package:flutter/material.dart';
 
 import '../models/price_record.dart';
 import '../services/auth_service.dart';
 import '../services/price_service.dart';
+import '../services/psa_service.dart';
 import '../utils/app_exception.dart';
 import '../utils/constants.dart';
 import '../utils/format.dart';
+import '../utils/snackbars.dart';
 import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
 import '../widgets/crop_thumb.dart';
@@ -31,6 +34,7 @@ class PriceListScreen extends StatefulWidget {
 class _PriceListScreenState extends State<PriceListScreen> {
   PriceData? _data;
   bool _isLoading = true;
+  bool _isImporting = false;
   String? _error;
 
   @override
@@ -60,6 +64,69 @@ class _PriceListScreenState extends State<PriceListScreen> {
     if (saved == true) _load();
   }
 
+  /// Downloads the last 24 months of PSA farmgate prices and saves them.
+  /// Saving the same crop and month again only updates it.
+  Future<void> _importFromPsa() async {
+    setState(() => _isImporting = true);
+    try {
+      final result = await PsaService().fetchFarmgate();
+      if (result.records.isEmpty) {
+        throw const AppException('PSA has no new prices for our crops yet.');
+      }
+      await PriceService().saveMany(
+        result.records,
+        AuthService.currentUser!.id,
+      );
+      if (!mounted) return;
+      final newest = result.records
+          .map((record) => record.month)
+          .reduce((a, b) => a.compareTo(b) > 0 ? a : b);
+      final missing = result.missingCrops.isEmpty
+          ? ''
+          : ' No PSA price for ${result.missingCrops.join(', ')}.';
+      showMessage(
+        context,
+        'Saved ${result.records.length} PSA prices '
+        '(newest: ${formatMonthKey(newest)}).$missing',
+      );
+      _load();
+    } catch (e) {
+      if (mounted) showError(context, friendlyMessage(e));
+    }
+    if (mounted) setState(() => _isImporting = false);
+  }
+
+  /// The admin's two buttons under the page heading.
+  Widget _buildAdminActions() {
+    return Wrap(
+      spacing: AppSizes.small,
+      runSpacing: AppSizes.small,
+      children: [
+        FilledButton.icon(
+          onPressed: _isImporting ? null : _importFromPsa,
+          icon: _isImporting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.cloud_download_outlined),
+          label: Text(
+            _isImporting ? 'Getting PSA prices…' : 'Get latest PSA prices',
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: _isImporting ? null : _openAdminForm,
+          icon: const Icon(Icons.add),
+          label: const Text('Add price'),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final records = _data?.records ?? [];
@@ -70,19 +137,18 @@ class _PriceListScreenState extends State<PriceListScreen> {
     final isAdmin = AuthService.currentUser?.isAdmin ?? false;
 
     return TabPage(
-      header: PageHeader(
-        eyebrow: 'Farmgate prices',
-        title: 'Market prices',
-        lead:
-            'Monthly averages per kg from $kPriceSource. '
-            'A guide, not live prices.',
-        trailing: isAdmin
-            ? FilledButton.icon(
-                onPressed: _openAdminForm,
-                icon: const Icon(Icons.add),
-                label: const Text('Add price'),
-              )
-            : null,
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PageHeader(
+            eyebrow: 'Farmgate prices',
+            title: 'Market prices',
+            lead:
+                'Monthly averages per kg from $kPriceSource (PSA '
+                'OpenSTAT). A guide, not live prices.',
+          ),
+          if (isAdmin) ...[const SizedBox(height: 12), _buildAdminActions()],
+        ],
       ),
       child: RefreshIndicator(
         onRefresh: _load,
@@ -92,7 +158,7 @@ class _PriceListScreenState extends State<PriceListScreen> {
           onRetry: _load,
           isEmpty: crops.isEmpty,
           emptyMessage: isAdmin
-              ? 'No prices yet. Tap "Add price" to enter this month\'s prices.'
+              ? 'No prices yet. Tap "Get latest PSA prices" to download them.'
               : 'No reference prices yet. Please check again later.',
           builder: (context) => ListView(
             padding: TabPage.listPadding,
