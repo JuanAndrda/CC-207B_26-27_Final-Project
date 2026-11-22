@@ -13,9 +13,14 @@ class DropdownField extends StatelessWidget {
     required this.items,
     required this.value,
     required this.onChanged,
+    this.hint,
   });
 
-  final String label;
+  /// Label inside the box. Use null when a LabeledField shows it above.
+  final String? label;
+
+  /// Grey text shown while nothing is picked, e.g. "Choose a crop".
+  final String? hint;
   final List<String> items;
   final String? value;
   final ValueChanged<String?> onChanged;
@@ -27,7 +32,7 @@ class DropdownField extends StatelessWidget {
       // makes the dropdown show the new value.
       key: ValueKey(value),
       initialValue: value,
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(labelText: label, hintText: hint),
       isExpanded: true,
       items: [
         for (final item in items)

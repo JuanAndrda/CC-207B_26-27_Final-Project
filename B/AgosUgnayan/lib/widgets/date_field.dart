@@ -17,7 +17,8 @@ class DateField extends StatelessWidget {
     this.isRequired = true,
   });
 
-  final String label;
+  /// Label inside the box. Use null when a LabeledField shows it above.
+  final String? label;
   final DateTime? value;
   final ValueChanged<DateTime?> onChanged;
   final DateTime firstDate; // earliest date the user may pick

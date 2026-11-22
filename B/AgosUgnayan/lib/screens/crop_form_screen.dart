@@ -14,12 +14,14 @@ import '../utils/app_exception.dart';
 import '../utils/constants.dart';
 import '../utils/format.dart';
 import '../utils/snackbars.dart';
+import '../utils/strings.dart';
 import '../utils/theme.dart';
 import '../utils/validators.dart';
 import '../widgets/ai_assistant_box.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/date_field.dart';
 import '../widgets/dropdown_field.dart';
+import '../widgets/labeled_field.dart';
 import '../widgets/loading_button.dart';
 import '../widgets/page_header.dart';
 import '../widgets/responsive_body.dart';
@@ -42,7 +44,8 @@ class _CropFormScreenState extends State<CropFormScreen> {
   final _descriptionController = TextEditingController();
   String? _crop;
   String? _unit = 'kg';
-  DateTime? _harvestDate;
+  String? _town; // where the crop is; starts as the farmer's own town
+  DateTime? _harvestDate = DateTime.now(); // starts as today, like the website
   bool _isSaving = false;
   bool _hasChanges = false; // for the "Discard changes?" warning
   bool _aiUsed = false; // true once the AI filled in the form
@@ -61,8 +64,12 @@ class _CropFormScreenState extends State<CropFormScreen> {
       _priceController.text = listing.price.toStringAsFixed(2);
       _descriptionController.text = listing.description;
       _harvestDate = listing.harvestDate;
+      // Only a town from our list, or the dropdown would not know it.
+      _town = kTowns.contains(listing.town) ? listing.town : null;
       _aiUsed = listing.aiAssisted;
     }
+    final myTown = AuthService.currentUser?.town;
+    _town ??= kTowns.contains(myTown) ? myTown : null;
     _loadPrices();
   }
 
@@ -118,7 +125,7 @@ class _CropFormScreenState extends State<CropFormScreen> {
       quantity: double.parse(_quantityController.text.trim()),
       unit: _unit!,
       price: double.parse(_priceController.text.trim()),
-      town: farmer.town,
+      town: _town!,
       harvestDate: _harvestDate,
       description: _descriptionController.text.trim(),
       aiAssisted: _aiUsed,
@@ -127,7 +134,12 @@ class _CropFormScreenState extends State<CropFormScreen> {
     try {
       await ListingService().save(listing);
       if (!mounted) return;
-      showMessage(context, _isEditing ? 'Crop updated.' : 'Crop listed.');
+      showMessage(
+        context,
+        _isEditing
+            ? 'Changes saved.'
+            : '${listing.crop} posted. Buyers can now see it.',
+      );
       // Navigator.pop closes the screen even when PopScope says canPop:
       // false. PopScope only stops the back button and back gesture.
       Navigator.of(context).pop(true);
@@ -138,13 +150,35 @@ class _CropFormScreenState extends State<CropFormScreen> {
     }
   }
 
-  /// "Reference: ₱45.00/kg (PSA farmgate, Iloilo Province, Aug 2026)"
-  String? _priceHint() {
-    if (_crop == null) return null;
+  /// The PSA reference price under the price field (website wording).
+  String _priceHint() {
+    if (_crop == null) {
+      return 'Choose a crop to see the latest PSA farmgate price.';
+    }
     final latest = PriceService.latestFor(_crop!, _prices);
-    if (latest == null) return null;
-    return 'Reference: ${formatPeso(latest.price)}/kg '
-        '($kPriceSource, ${formatMonthKey(latest.month)})';
+    if (latest == null) return 'PSA has no farmgate price for this crop yet.';
+    return 'For reference: PSA farmgate average, Iloilo Province, is '
+        '${formatPeso(latest.price)}/kg (${formatMonthKey(latest.month)}).';
+  }
+
+  /// Required, a number above 0, and at most 100,000 (like the website).
+  String? _quantityValidator(String? value) {
+    final problem = Validators.positiveNumber(value);
+    if (problem != null) return problem;
+    if (double.parse(value!.trim()) > 100000) {
+      return 'Enter a quantity up to 100,000.';
+    }
+    return null;
+  }
+
+  /// Required, a price above 0 and below ₱10,000 (like the website).
+  String? _priceValidator(String? value) {
+    final problem = Validators.price(value);
+    if (problem != null) return problem;
+    if (double.parse(value!.trim()) >= 10000) {
+      return 'Price must be below ₱10,000, like 54.50.';
+    }
+    return null;
   }
 
   @override
@@ -158,7 +192,7 @@ class _CropFormScreenState extends State<CropFormScreen> {
         if (discard && context.mounted) Navigator.of(context).pop(false);
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(_isEditing ? 'Edit crop' : 'Add crop')),
+        appBar: AppBar(title: Text(_isEditing ? 'Edit crop' : 'Add a crop')),
         body: Form(
           key: _formKey,
           // setState so PopScope knows there are unsaved changes now.
@@ -171,11 +205,8 @@ class _CropFormScreenState extends State<CropFormScreen> {
               padding: const EdgeInsets.all(AppSizes.pagePadding),
               children: [
                 PageHeader(
-                  eyebrow: _isEditing ? 'Edit listing' : 'New listing',
-                  title: _isEditing ? 'Edit your crop' : 'Sell a crop',
-                  lead:
-                      'Buyers see this in the Market. Fields marked '
-                      '"optional" can be left empty.',
+                  eyebrow: _isEditing ? 'Update your listing' : 'New listing',
+                  title: _isEditing ? 'Edit crop' : 'Add a crop',
                 ),
                 const SizedBox(height: AppSizes.sectionGap),
                 if (!_isEditing) AiAssistantBox(onSuggestion: _applySuggestion),
@@ -187,79 +218,125 @@ class _CropFormScreenState extends State<CropFormScreen> {
                   ),
                 ],
                 const SizedBox(height: AppSizes.sectionGap),
-                DropdownField(
+                const RequiredNote(),
+                const SizedBox(height: AppSizes.fieldGap),
+                LabeledField(
                   label: 'Crop',
-                  items: kCrops,
-                  value: _crop,
-                  onChanged: (value) => setState(() => _crop = value),
+                  isRequired: true,
+                  child: DropdownField(
+                    label: null,
+                    hint: 'Choose a crop',
+                    items: kCrops,
+                    value: _crop,
+                    onChanged: (value) => setState(() => _crop = value),
+                  ),
                 ),
                 const SizedBox(height: AppSizes.fieldGap),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _quantityController,
-                        decoration: const InputDecoration(
-                          labelText: 'Quantity',
+                LabeledField(
+                  label: 'Quantity',
+                  isRequired: true,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextFormField(
+                          controller: _quantityController,
+                          decoration: const InputDecoration(
+                            hintText: 'e.g. 180',
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          validator: _quantityValidator,
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
+                      ),
+                      const SizedBox(width: AppSizes.small),
+                      // Our app also sells by sack, bundle or piece.
+                      Expanded(
+                        flex: 2,
+                        child: DropdownField(
+                          label: null,
+                          items: kUnits,
+                          value: _unit,
+                          onChanged: (value) => setState(() => _unit = value),
                         ),
-                        validator: Validators.positiveNumber,
                       ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSizes.fieldGap),
+                LabeledField(
+                  label: 'Asking price per ${_unit ?? 'unit'}',
+                  isRequired: true,
+                  help: _priceHint(),
+                  child: TextFormField(
+                    controller: _priceController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 54.50',
+                      prefixText: '₱ ',
+                      suffixText: '/${_unit ?? 'unit'}',
                     ),
-                    const SizedBox(width: AppSizes.small),
-                    Expanded(
-                      child: DropdownField(
-                        label: 'Unit',
-                        items: kUnits,
-                        value: _unit,
-                        onChanged: (value) => setState(() => _unit = value),
-                      ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
-                  ],
+                    validator: _priceValidator,
+                  ),
                 ),
                 const SizedBox(height: AppSizes.fieldGap),
-                TextFormField(
-                  controller: _priceController,
-                  decoration: InputDecoration(
-                    labelText: 'Asking price per ${_unit ?? 'unit'} (₱)',
-                    helperText: _priceHint(),
-                    helperMaxLines: 2,
+                LabeledField(
+                  label: 'Town',
+                  isRequired: true,
+                  child: DropdownField(
+                    label: null,
+                    items: kTowns,
+                    value: _town,
+                    onChanged: (value) => setState(() => _town = value),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  validator: Validators.price,
                 ),
                 const SizedBox(height: AppSizes.fieldGap),
-                DateField(
-                  label: 'Harvest date (optional)',
-                  value: _harvestDate,
-                  isRequired: false,
-                  firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                  onChanged: (date) => setState(() {
-                    _harvestDate = date;
-                    _hasChanges = true;
-                  }),
+                LabeledField(
+                  label: 'Harvest date',
+                  isRequired: true,
+                  child: DateField(
+                    label: null,
+                    value: _harvestDate,
+                    firstDate: DateTime.now().subtract(
+                      const Duration(days: 30),
+                    ),
+                    onChanged: (date) => setState(() {
+                      _harvestDate = date;
+                      _hasChanges = true;
+                    }),
+                  ),
                 ),
                 const SizedBox(height: AppSizes.fieldGap),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optional)',
-                    hintText: 'e.g. Freshly picked, no pesticide',
+                LabeledField(
+                  label: 'Description',
+                  child: TextFormField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Firm, ripe tomatoes sorted by size',
+                    ),
+                    maxLines: 3,
+                    maxLength: 500,
+                    validator: Validators.maxLength(500),
                   ),
-                  maxLines: 3,
-                  maxLength: 300,
-                  validator: Validators.maxLength(300),
                 ),
                 const SizedBox(height: AppSizes.sectionGap),
+                // Main button, then Cancel (which asks first if something
+                // was changed), like the website.
                 LoadingButton(
-                  label: _isEditing ? 'Save changes' : 'List this crop',
+                  label: _isEditing ? 'Save changes' : 'Post crop',
                   isLoading: _isSaving,
                   onPressed: _save,
+                ),
+                const SizedBox(height: AppSizes.small),
+                TextButton(
+                  onPressed: _isSaving
+                      ? null
+                      : () => Navigator.of(context).maybePop(),
+                  child: const Text(AppStrings.cancel),
                 ),
               ],
             ),

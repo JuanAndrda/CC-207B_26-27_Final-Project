@@ -22,7 +22,8 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Navigation | `lib/screens/my_crops_screen.dart` | `_openForm` (`Navigator.push` with a result) | Opens the form and reloads when it returns `true` |
 | Navigation | `lib/screens/profile_screen.dart` | `_logOut` (`pushAndRemoveUntil`) | Clears every screen after log out |
 | Forms / validation | `lib/screens/register_screen.dart` | `RegisterScreen` | Name, email, password, confirm password, role, town, privacy consent |
-| Forms / validation | `lib/screens/crop_form_screen.dart` | `CropFormScreen` (`PopScope`) | Validated listing form with "Discard changes?" warning |
+| Forms / validation | `lib/screens/crop_form_screen.dart` | `CropFormScreen` (`PopScope`, `_quantityValidator`, `_priceValidator`) | Website-style listing form: required and optional fields, limits, PSA reference hint, "Discard changes?" on Back and Cancel |
+| Forms / validation | `lib/widgets/labeled_field.dart` | `LabeledField`, `RequiredNote` | Label above the field with a red star or an "Optional" tag |
 | Forms / validation | `lib/utils/validators.dart` | `Validators` | Reusable validators with friendly messages, unit-tested |
 | Async / API | `lib/utils/app_exception.dart` | `runSafely` | One try/catch with timeout around every Firebase call |
 | Async / API | `lib/screens/marketplace_screen.dart` | `_loadFirstPage`, `_loadMore` | Pagination: 20 per page with `startAfterDocument` |
