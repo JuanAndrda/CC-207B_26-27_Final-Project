@@ -26,7 +26,7 @@ class RequestService {
 
   /// Open requests for the farmers' Buyer Demand tab: needed today or later,
   /// soonest first. [limit] keeps the list from growing without end.
-  Future<List<BuyerRequest>> fetchOpen({int limit = 50}) {
+  Future<List<BuyerRequest>> fetchOpen({int limit = 100}) {
     return runSafely('load buyer demand', () async {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
@@ -37,6 +37,8 @@ class RequestService {
           .get();
       return snapshot.docs
           .map((doc) => BuyerRequest.fromMap(doc.id, doc.data()))
+          // Requests the buyer closed are not shown to farmers.
+          .where((request) => !request.closedByBuyer)
           .toList();
     });
   }
@@ -53,6 +55,15 @@ class RequestService {
         await _requests.doc(request.id).update(request.toMap());
       }
     });
+  }
+
+  /// Closes a request (the buyer found what they needed) or opens it
+  /// again. Farmers no longer see closed requests in Buyer Demand.
+  Future<void> setClosed(String id, bool closed) {
+    return runSafely(
+      'close request',
+      () => _requests.doc(id).update({'closed': closed}),
+    );
   }
 
   Future<void> delete(String id) {

@@ -2,6 +2,16 @@
 
 import 'firestore_date.dart';
 
+/// Where a listing is: for sale, sold out, or removed by the farmer.
+/// Listings saved before this field existed count as active.
+class ListingStatus {
+  ListingStatus._();
+
+  static const String active = 'active'; // buyers see it in the Market
+  static const String sold = 'sold'; // sold out, kept for the farmer
+  static const String removed = 'removed'; // hidden, can be put back
+}
+
 /// One crop a farmer is selling, e.g. "Tomato, 50 kg at ₱45.00/kg".
 class Listing {
   const Listing({
@@ -17,6 +27,7 @@ class Listing {
     required this.description,
     required this.aiAssisted,
     required this.createdAt,
+    this.status = ListingStatus.active,
   });
 
   final String id; // empty for a new listing that is not saved yet
@@ -31,6 +42,10 @@ class Listing {
   final String description;
   final bool aiAssisted; // true if the AI assistant helped fill the form
   final DateTime createdAt;
+  final String status; // one of ListingStatus
+
+  /// True when buyers can see it in the Market.
+  bool get isActive => status == ListingStatus.active;
 
   /// Builds a listing from a Firestore document.
   factory Listing.fromMap(String id, Map<String, dynamic> data) {
@@ -47,6 +62,7 @@ class Listing {
       description: data['description'] as String? ?? '',
       aiAssisted: data['aiAssisted'] as bool? ?? false,
       createdAt: readDate(data['createdAt']),
+      status: data['status'] as String? ?? ListingStatus.active,
     );
   }
 
@@ -63,6 +79,7 @@ class Listing {
       'harvestDate': harvestDate,
       'description': description,
       'aiAssisted': aiAssisted,
+      'status': status,
     };
   }
 }

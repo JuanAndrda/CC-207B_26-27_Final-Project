@@ -17,6 +17,7 @@ class BuyerRequest {
     required this.neededBy,
     required this.notes,
     required this.createdAt,
+    this.closedByBuyer = false,
   });
 
   final String id;
@@ -31,13 +32,19 @@ class BuyerRequest {
   final String notes;
   final DateTime createdAt;
 
-  /// A request is closed once its "needed by" day has passed. We work this out
-  /// when reading, so nothing has to update the database every day.
-  bool get isClosed {
+  /// True when the buyer closed it (e.g. they found a farmer).
+  final bool closedByBuyer;
+
+  /// True when the "needed by" day has passed. Worked out when reading,
+  /// so nothing has to update the database every day.
+  bool get isExpired {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     return neededBy.isBefore(today);
   }
+
+  /// Closed by the buyer, or its date has passed.
+  bool get isClosed => closedByBuyer || isExpired;
 
   /// Builds a request from a Firestore document.
   factory BuyerRequest.fromMap(String id, Map<String, dynamic> data) {
@@ -54,6 +61,7 @@ class BuyerRequest {
       neededBy: readDate(data['neededBy']),
       notes: data['notes'] as String? ?? '',
       createdAt: readDate(data['createdAt']),
+      closedByBuyer: data['closed'] as bool? ?? false,
     );
   }
 
@@ -69,6 +77,7 @@ class BuyerRequest {
       'town': town,
       'neededBy': neededBy,
       'notes': notes,
+      'closed': closedByBuyer,
     };
   }
 }

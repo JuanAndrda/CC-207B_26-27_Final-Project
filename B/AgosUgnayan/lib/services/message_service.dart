@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/chat.dart';
 import '../utils/app_exception.dart';
+import '../utils/app_logger.dart';
 
 /// Opening chats, listening to them and sending messages.
 class MessageService {
@@ -71,6 +72,19 @@ class MessageService {
 
   /// Sends a message and updates the chat's "last message" in one batch, so
   /// both writes succeed or both fail.
+  /// Remembers that [myId] has read [chatId] now, so the inbox stops
+  /// showing it as unread. Failing here is not important, so errors are
+  /// only logged.
+  Future<void> markRead(String chatId, String myId) async {
+    try {
+      await _chats.doc(chatId).update({
+        'readAt.$myId': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      AppLogger.error('mark chat read failed', e);
+    }
+  }
+
   Future<void> send({
     required String chatId,
     required String senderId,
@@ -87,6 +101,8 @@ class MessageService {
       batch.update(chatRef, {
         'lastMessage': text.trim(),
         'lastMessageAt': FieldValue.serverTimestamp(),
+        'lastSenderId': senderId, // for the unread dot in the inbox
+        'readAt.$senderId': FieldValue.serverTimestamp(),
       });
       return batch.commit();
     });

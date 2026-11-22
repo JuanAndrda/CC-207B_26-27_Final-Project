@@ -12,16 +12,19 @@ import '../services/psa_service.dart';
 import '../utils/app_exception.dart';
 import '../utils/constants.dart';
 import '../utils/format.dart';
+import '../utils/paging.dart';
 import '../utils/snackbars.dart';
 import '../utils/theme.dart';
-import '../widgets/async_state_view.dart';
 import '../widgets/crop_thumb.dart';
+import '../widgets/list_page.dart';
+import '../widgets/list_tools.dart';
 import '../widgets/listing_card.dart';
 import '../widgets/notice_box.dart';
 import '../widgets/page_header.dart';
-import '../widgets/tab_page.dart';
 import 'admin_price_form_screen.dart';
 import 'price_detail_screen.dart';
+
+enum _Sort { name, priceHigh, priceLow, change }
 
 /// Prices tab for farmers and the admin.
 class PriceListScreen extends StatefulWidget {
@@ -36,6 +39,8 @@ class _PriceListScreenState extends State<PriceListScreen> {
   bool _isLoading = true;
   bool _isImporting = false;
   String? _error;
+  String _search = '';
+  _Sort _sort = _Sort.name;
 
   @override
   void initState() {
@@ -127,16 +132,40 @@ class _PriceListScreenState extends State<PriceListScreen> {
     );
   }
 
+  /// How much a crop's price changed since the month before (0 if new).
+  static double _change(String crop, List<PriceRecord> records) {
+    final history = PriceService.historyFor(crop, records);
+    if (history.length < 2) return 0;
+    return history.last.price - history[history.length - 2].price;
+  }
+
   @override
   Widget build(BuildContext context) {
     final records = _data?.records ?? [];
-    // Only crops that have at least one price.
+    // Only crops that have at least one price, matching the search.
     final crops = kCrops
         .where((crop) => PriceService.latestFor(crop, records) != null)
+        .where((crop) => matchesSearch(_search, [crop]))
         .toList();
+    double latest(String crop) => PriceService.latestFor(crop, records)!.price;
+    switch (_sort) {
+      case _Sort.name:
+        crops.sort();
+      case _Sort.priceHigh:
+        crops.sort((a, b) => latest(b).compareTo(latest(a)));
+      case _Sort.priceLow:
+        crops.sort((a, b) => latest(a).compareTo(latest(b)));
+      case _Sort.change:
+        // Biggest change first, up or down.
+        crops.sort(
+          (a, b) =>
+              _change(b, records).abs().compareTo(_change(a, records).abs()),
+        );
+    }
     final isAdmin = AuthService.currentUser?.isAdmin ?? false;
 
-    return TabPage(
+    return ListPage(
+      onRefresh: _load,
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -144,37 +173,51 @@ class _PriceListScreenState extends State<PriceListScreen> {
           if (isAdmin) ...[const SizedBox(height: 12), _buildAdminActions()],
         ],
       ),
-      child: RefreshIndicator(
-        onRefresh: _load,
-        child: AsyncStateView(
-          isLoading: _isLoading,
-          errorMessage: _error,
-          onRetry: _load,
-          isEmpty: crops.isEmpty,
-          emptyMessage: isAdmin
-              ? 'No prices yet. Tap "Get latest PSA prices" to download them.'
-              : 'No reference prices yet. Please check again later.',
-          builder: (context) => ListView(
-            padding: TabPage.listPadding,
-            children: [
-              if (_data?.savedCopyFrom != null) ...[
-                _buildOfflineNote(),
-                const SizedBox(height: 12),
-              ],
-              // One white box with a row per crop (website .list).
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    for (var i = 0; i < crops.length; i++) ...[
-                      if (i > 0) const Divider(),
-                      _buildRow(crops[i], records),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+      toolbar: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_data?.savedCopyFrom != null) ...[
+            _buildOfflineNote(),
+            const SizedBox(height: 10),
+          ],
+          ListToolbar(
+            search: SearchBox(
+              hint: 'Search a crop…',
+              onChanged: (text) => setState(() => _search = text),
+            ),
+            sort: SortMenu<_Sort>(
+              value: _sort,
+              options: const {
+                _Sort.name: 'Crop name (A-Z)',
+                _Sort.priceHigh: 'Highest price',
+                _Sort.priceLow: 'Lowest price',
+                _Sort.change: 'Biggest change',
+              },
+              onChanged: (sort) => setState(() => _sort = sort),
+            ),
           ),
+        ],
+      ),
+      isLoading: _isLoading,
+      errorMessage: _error,
+      onRetry: _load,
+      isEmpty: crops.isEmpty,
+      emptyMessage: _search.isNotEmpty
+          ? 'No crop matches "$_search".'
+          : isAdmin
+          ? 'No prices yet. Tap "Get latest PSA prices" to download them.'
+          : 'No reference prices yet. Please check again later.',
+      // Only 10 crops, so no page numbers are needed: one card, two
+      // columns of rows on a wide screen.
+      sliverBuilder: (context, width) => sliverCardGrid(
+        contentWidth: width,
+        count: crops.length,
+        minTileWidth: 440,
+        maxColumns: 2,
+        tileHeight: 76,
+        itemBuilder: (context, index) => Card(
+          clipBehavior: Clip.antiAlias,
+          child: _buildRow(crops[index], records),
         ),
       ),
     );

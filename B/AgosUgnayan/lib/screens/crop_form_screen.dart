@@ -130,6 +130,8 @@ class _CropFormScreenState extends State<CropFormScreen> {
       description: _descriptionController.text.trim(),
       aiAssisted: _aiUsed,
       createdAt: widget.listing?.createdAt ?? DateTime.now(),
+      // Editing keeps the status (e.g. a sold-out crop stays sold out).
+      status: widget.listing?.status ?? ListingStatus.active,
     );
     try {
       await ListingService().save(listing);

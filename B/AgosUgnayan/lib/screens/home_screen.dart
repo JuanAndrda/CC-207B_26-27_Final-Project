@@ -162,7 +162,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ListingService().fetchByFarmer(me.id),
           RequestService().fetchOpen(),
         ]);
-        final myCrops = {for (final l in results[0] as List) l.crop};
+        final myCrops = {
+          for (final l in results[0] as List)
+            if (l.isActive as bool) l.crop,
+        };
         final demand = (results[1] as List)
             .where((r) => myCrops.contains(r.crop))
             .length;

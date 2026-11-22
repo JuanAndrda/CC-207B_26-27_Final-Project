@@ -93,6 +93,7 @@ class _RequestFormScreenState extends State<RequestFormScreen> {
       neededBy: _neededBy!,
       notes: _notesController.text.trim(),
       createdAt: widget.request?.createdAt ?? DateTime.now(),
+      closedByBuyer: widget.request?.closedByBuyer ?? false,
     );
     try {
       await RequestService().save(request);

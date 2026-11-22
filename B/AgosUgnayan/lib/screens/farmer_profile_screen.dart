@@ -54,7 +54,10 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
       if (!mounted) return;
       setState(() {
         _farmer = results[0] as AppUser;
-        _listings = results[1] as List<Listing>;
+        // Buyers only see crops that are still for sale.
+        _listings = (results[1] as List<Listing>)
+            .where((l) => l.isActive)
+            .toList();
       });
     } catch (e) {
       if (mounted) setState(() => _error = friendlyMessage(e));

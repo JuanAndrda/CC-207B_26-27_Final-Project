@@ -13,8 +13,9 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Layout | `lib/screens/marketplace_screen.dart` | `_buildGrid` (`LayoutBuilder`, `SliverGrid`) | 2 to 4 crop cards per row depending on the screen width |
 | Layout | `lib/screens/crop_form_screen.dart` | `CropFormScreen` (`ListView`, `Row`, `Expanded`) | Form fields stacked, quantity and unit side by side |
 | Layout | `lib/widgets/async_state_view.dart` | `AsyncStateView`, `_Message` | `Column`, `Padding`, `SizedBox` for loading, error and empty states |
-| Interaction | `lib/screens/following_screen.dart` | `FollowingScreen` (`SegmentedButton`) | Switch between followed Crop Listings and Farmers |
-| Interaction | `lib/screens/marketplace_screen.dart` | `MarketplaceScreen` (`ChoiceChip`, `DropdownButton`, `TextField`) | Crop and town filters, debounced search |
+| Interaction | `lib/screens/following_screen.dart` | `FollowingScreen` (`StatusTabs`, `SearchBox`) | Crops / Farmers tabs with counts, search, Unfollow with Undo |
+| Interaction | `lib/screens/marketplace_screen.dart` | `MarketplaceScreen` (`ChoiceChip`, `FilterDropdown`, min/max `TextField`, `SortMenu`) | Crop, town and price filters, debounced search, 4 sort orders |
+| Interaction | `lib/screens/my_crops_screen.dart` | `MyCropsScreen` (`StatusTabs`, `PopupMenuButton`) | Active / Sold out / Removed tabs; mark sold out, remove, restore, delete forever, all with Undo |
 | Interaction | `lib/widgets/confirm_dialog.dart` | `showConfirmDialog` (`showModalBottomSheet`) | Confirmation sheet before delete, log out and discarding a form |
 | Interaction | `lib/screens/register_screen.dart` | `_RoleCard` (`InkWell`) | Tappable Farmer / Buyer cards |
 | Interaction | `lib/utils/snackbars.dart` | `showMessage`, `showUndoMessage` | Feedback after every action, with Undo for deletes |
@@ -28,7 +29,11 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Forms / validation | `lib/widgets/labeled_field.dart` | `LabeledField`, `RequiredNote` | Label above the field with a red star or an "Optional" tag |
 | Forms / validation | `lib/utils/validators.dart` | `Validators` | Reusable validators with friendly messages, unit-tested |
 | Async / API | `lib/utils/app_exception.dart` | `runSafely` | One try/catch with timeout around every Firebase call |
-| Async / API | `lib/screens/marketplace_screen.dart` | `_loadFirstPage`, `_loadMore` | Pagination: 20 per page with `startAfterDocument` |
+| Async / API | `lib/screens/marketplace_screen.dart` | `_load`, `_visible` | Firestore query (crop, town, newest 100), then search, min/max price, sort and pages of 12 that work together |
+| Interaction | `lib/widgets/list_tools.dart` | `SearchBox` (300 ms debounce), `SortMenu`, `FilterDropdown`, `ListToolbar` ("Clear all filters"), `StatusTabs`, `PaginationBar` | One set of list tools on every list page |
+| Layout | `lib/widgets/list_page.dart` | `ListPage` (`CustomScrollView`, `SliverGrid`, `SliverFillRemaining`) | Heading, toolbar, items and page numbers scroll together; grids on wide screens |
+| Value widgets | `lib/utils/paging.dart` | `pageOf`, `PageSlice`, `matchesSearch` | "Showing 13-24 of 57" page math and word search, unit-tested |
+| Persistence | `lib/services/listing_service.dart`, `request_service.dart`, `message_service.dart` | `setStatus`, `setClosed`, `markRead` | Sold out / removed crops, closed requests, read chats (unread dots) |
 | Async / API | `lib/services/psa_service.dart` | `PsaService.fetchFarmgate` (`http` GET + POST, 30 s timeout) | Downloads Iloilo farmgate prices from the PSA OpenSTAT API and turns them into price records |
 | Async / API | `lib/services/price_service.dart` | `PriceService.saveMany` (Firestore batch) | Saves the PSA prices; the same crop and month is updated, not duplicated |
 | Async / API | `lib/services/crop_photo_service.dart` | `CropPhotoService.loadAll` (`http`, `shared_preferences`) | Sample crop photos from the Wikipedia API, saved for a week, offline fallback |

@@ -1,9 +1,9 @@
 # Known limitations and planned features
 
 ## Known limitations
-- **Search** in the Marketplace only searches listings already loaded (Firestore has no full-text search). Crop and town filters do query the database.
+- **Market search, price filter, sorting and page numbers** work on the newest 100 crops for sale that match the crop and town filters (Firestore has no full-text search). Crop and town filters are part of the database query.
+- **Buyer Demand** shows the 100 soonest open requests; search, filters, sorting and pages work on those.
 - **Chat** loads the newest 50 messages of a conversation; older ones are not shown.
-- **Buyer Demand** shows the 50 soonest open requests.
 - **Following a listing** saves its title and price at that moment; if the farmer edits the price later, the Following list shows the old text until the buyer opens it.
 - **Reference prices** come from PSA OpenSTAT when the admin taps "Get latest PSA prices"; they do not update by themselves. PSA publishes a few months late (in Nov 2026 the newest month was June 2026), so the app always shows the month next to each price.
 - **Admin** can only add prices. Managing users and removing posts is done in the Firebase console.

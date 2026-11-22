@@ -88,6 +88,38 @@ class ListingService {
     });
   }
 
+  /// The newest [limit] listings that are for sale, with optional crop
+  /// and town filters (null = all). The Market searches, filters, sorts
+  /// and splits these into pages on the phone, so all of those work
+  /// together. Sold out and removed listings are left out.
+  Future<List<Listing>> fetchForMarket({
+    String? crop,
+    String? town,
+    int limit = 100,
+  }) {
+    return runSafely('load marketplace', () async {
+      Query<Map<String, dynamic>> query = _listings;
+      if (crop != null) query = query.where('crop', isEqualTo: crop);
+      if (town != null) query = query.where('town', isEqualTo: town);
+      final snapshot = await query
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+      return snapshot.docs
+          .map((doc) => Listing.fromMap(doc.id, doc.data()))
+          .where((listing) => listing.isActive)
+          .toList();
+    });
+  }
+
+  /// Changes only a listing's status, e.g. to sold out.
+  Future<void> setStatus(String id, String status) {
+    return runSafely(
+      'change listing status',
+      () => _listings.doc(id).update({'status': status}),
+    );
+  }
+
   Future<void> delete(String id) {
     return runSafely('delete listing', () => _listings.doc(id).delete());
   }

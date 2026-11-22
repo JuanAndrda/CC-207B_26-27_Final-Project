@@ -66,7 +66,10 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
       ]);
       if (!mounted) return;
       setState(() {
-        _myListings = results[0] as List<Listing>;
+        // Only crops still for sale count as "selling".
+        _myListings = (results[0] as List<Listing>)
+            .where((l) => l.isActive)
+            .toList();
         _openRequests = results[1] as List<BuyerRequest>;
         _prices = (results[2] as PriceData).records;
       });

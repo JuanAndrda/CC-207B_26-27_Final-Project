@@ -42,10 +42,14 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _messages = _service.watchMessages(widget.chatId);
+    // Opening the chat means I've read it (removes the unread dot).
+    _service.markRead(widget.chatId, _myId);
   }
 
   @override
   void dispose() {
+    // Messages that came in while the chat was open count as read too.
+    _service.markRead(widget.chatId, _myId);
     _textController.dispose();
     super.dispose();
   }
