@@ -47,7 +47,7 @@ Also: **Following** (buyers follow crop listings or farmers, shown on two tabs) 
 | `intl` | Formats pesos, dates and months, e.g. "₱45.00" and "Aug 2026". |
 | `shared_preferences` | Saves the last loaded reference prices on the phone for offline use. |
 | `fl_chart` | Draws the 12-month reference price chart. |
-| `http` | Downloads farmgate prices from the PSA OpenSTAT API (free, no key). |
+| `http` | Downloads farmgate prices from the PSA OpenSTAT API and sample crop photos from Wikipedia (both free, no key). |
 
 Navigation uses Flutter's built-in `Navigator.push` / `pop` (no routing package), the same way as in our class activities.
 

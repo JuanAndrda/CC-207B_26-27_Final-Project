@@ -34,7 +34,7 @@ class RequestCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CropThumb(icon: Icons.assignment_outlined),
+              CropThumb(crop: request.crop),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

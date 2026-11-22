@@ -28,6 +28,8 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Async / API | `lib/screens/marketplace_screen.dart` | `_loadFirstPage`, `_loadMore` | Pagination: 20 per page with `startAfterDocument` |
 | Async / API | `lib/services/psa_service.dart` | `PsaService.fetchFarmgate` (`http` GET + POST, 30 s timeout) | Downloads Iloilo farmgate prices from the PSA OpenSTAT API and turns them into price records |
 | Async / API | `lib/services/price_service.dart` | `PriceService.saveMany` (Firestore batch) | Saves the PSA prices; the same crop and month is updated, not duplicated |
+| Async / API | `lib/services/crop_photo_service.dart` | `CropPhotoService.loadAll` (`http`, `shared_preferences`) | Sample crop photos from the Wikipedia API, saved for a week, offline fallback |
+| Value widgets | `lib/widgets/crop_image.dart` | `CropImage`, `CropHero`, `CropAbout` (`Image.network`, `FutureBuilder`, `Stack`) | Photo over the placeholder, "Sample photo" label, credit and "About" text |
 | Async / API | `lib/screens/chat_screen.dart` | `ChatScreen` (`StreamBuilder`) | Live messages from a Firestore stream |
 | Async / API | `lib/widgets/async_state_view.dart` | `AsyncStateView` | Shared loading, empty, error (Try again) and data states |
 | Persistence | `lib/services/listing_service.dart` | `ListingService` | Firestore create, read, update, delete and restore (Undo) |

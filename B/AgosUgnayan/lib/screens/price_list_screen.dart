@@ -231,7 +231,7 @@ class _PriceListScreenState extends State<PriceListScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            const CropThumb(),
+            CropThumb(crop: crop),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

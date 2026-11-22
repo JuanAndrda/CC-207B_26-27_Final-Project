@@ -8,6 +8,7 @@ import '../models/price_record.dart';
 import '../utils/constants.dart';
 import '../utils/format.dart';
 import '../utils/theme.dart';
+import '../widgets/crop_image.dart';
 import '../widgets/page_header.dart';
 import '../widgets/responsive_body.dart';
 
@@ -35,6 +36,8 @@ class PriceDetailScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSizes.pagePadding),
           children: [
+            CropHero(crop: crop),
+            const SizedBox(height: AppSizes.fieldGap),
             PageHeader(
               eyebrow: '$kPriceSource · ${formatMonthKey(latest.month)}',
               title: crop,
@@ -95,6 +98,9 @@ class PriceDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: AppSizes.sectionGap),
+            // A few sentences about the crop from Wikipedia (hidden offline).
+            CropAbout(crop: crop),
           ],
         ),
       ),

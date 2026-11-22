@@ -8,6 +8,7 @@ import '../models/listing.dart';
 import '../utils/format.dart';
 import '../utils/theme.dart';
 import 'crop_thumb.dart';
+import 'crop_image.dart';
 
 /// Crop, amount, town and farmer on the left, asking price on the right.
 class ListingCard extends StatelessWidget {
@@ -46,7 +47,7 @@ class ListingCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
             child: Row(
               children: [
-                const CropThumb(),
+                CropThumb(crop: listing.crop),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -103,17 +104,10 @@ class ListingGridCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Photo placeholder, 16:10 like the website's crop cards.
+            // Sample photo (or placeholder), 16:10 like the website's cards.
             AspectRatio(
               aspectRatio: 16 / 10,
-              child: Container(
-                color: AppColors.primaryLight,
-                child: const Icon(
-                  Icons.eco_outlined,
-                  size: 36,
-                  color: AppColors.link,
-                ),
-              ),
+              child: CropImage(crop: listing.crop, size: CropImageSize.card),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),

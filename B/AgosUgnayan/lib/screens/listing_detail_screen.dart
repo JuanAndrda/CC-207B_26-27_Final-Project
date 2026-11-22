@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import '../utils/format.dart';
 import '../utils/theme.dart';
 import '../widgets/ai_assistant_box.dart';
+import '../widgets/crop_image.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/info_row.dart';
 import '../widgets/listing_card.dart';
@@ -36,20 +37,11 @@ class ListingDetailScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSizes.pagePadding),
           children: [
-            // Photo placeholder, like the website's crop hero image.
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppSizes.radiusCard),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Container(
-                  color: AppColors.primaryLight,
-                  child: const Icon(
-                    Icons.eco_outlined,
-                    size: 56,
-                    color: AppColors.link,
-                  ),
-                ),
-              ),
+            // Big sample photo with its credit, like the website. The note
+            // makes clear it is not the farmer's own harvest.
+            CropHero(
+              crop: listing.crop,
+              note: 'The farmer has not added a photo.',
             ),
             const SizedBox(height: AppSizes.fieldGap),
             PageHeader(
