@@ -43,9 +43,9 @@ class AppColors {
 class AppSizes {
   AppSizes._();
 
-  static const double pagePadding = 20; // side margins (--gutter)
-  static const double sectionGap = 24; // between sections (--section-gap)
-  static const double fieldGap = 18; // between form fields
+  static const double pagePadding = 16; // side margins on phones
+  static const double sectionGap = 20; // between sections
+  static const double fieldGap = 16; // between form fields
   static const double labelGap = 6;
   static const double small = 8;
 
@@ -61,11 +61,17 @@ class AppSizes {
   /// Screens at least this wide get the side menu instead of bottom tabs.
   static const double wideBreakpoint = 600;
 
+  /// Screens at least this wide get the full sidebar with labels.
+  static const double desktopBreakpoint = 1000;
+
+  /// Side margins on tablets and laptops (more room, so a bit more space).
+  static const double pagePaddingWide = 24;
+
   /// Widest a list or grid page gets on a big screen, so lines stay readable.
-  static const double maxListWidth = 960;
+  static const double maxListWidth = 1200;
 
   /// Widest a form or detail page gets on a big screen.
-  static const double maxFormWidth = 640;
+  static const double maxFormWidth = 720;
 }
 
 /// Font family names. The font files are in assets/fonts and listed in
@@ -85,7 +91,7 @@ class AppTextStyles {
   static const TextStyle pageTitle = TextStyle(
     fontFamily: AppFonts.display,
     fontWeight: FontWeight.w800,
-    fontSize: 31,
+    fontSize: 28,
     height: 1.0,
     color: AppColors.text,
   );
@@ -136,6 +142,23 @@ class AppTextStyles {
     fontFamily: AppFonts.body,
     fontSize: 12,
     color: AppColors.textMuted,
+  );
+
+  /// The big number on a stat tile, e.g. "12" crops listed.
+  static const TextStyle statNumber = TextStyle(
+    fontFamily: AppFonts.display,
+    fontWeight: FontWeight.w800,
+    fontSize: 30,
+    height: 1.0,
+    color: AppColors.text,
+  );
+
+  /// The name on a card or list row, e.g. "Tomato".
+  static const TextStyle cardTitle = TextStyle(
+    fontFamily: AppFonts.body,
+    fontWeight: FontWeight.w600,
+    fontSize: 15,
+    color: AppColors.text,
   );
 
   /// "See all" style link next to a section heading.

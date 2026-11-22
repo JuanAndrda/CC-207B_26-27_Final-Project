@@ -140,13 +140,7 @@ class _PriceListScreenState extends State<PriceListScreen> {
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PageHeader(
-            eyebrow: 'Farmgate prices',
-            title: 'Market prices',
-            lead:
-                'Monthly averages per kg from $kPriceSource (PSA '
-                'OpenSTAT). A guide, not live prices.',
-          ),
+          const PageHeader(eyebrow: 'Farmgate prices', title: 'Market prices'),
           if (isAdmin) ...[const SizedBox(height: 12), _buildAdminActions()],
         ],
       ),
