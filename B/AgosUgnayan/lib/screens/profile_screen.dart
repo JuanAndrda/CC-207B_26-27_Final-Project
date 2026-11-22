@@ -14,27 +14,31 @@ import '../widgets/info_row.dart';
 import '../widgets/responsive_body.dart';
 import 'login_screen.dart';
 
+/// Asks "Log out?" and, if confirmed, logs out and opens the login screen.
+/// Used by the Profile page and the sidebar's Log out button.
+Future<void> confirmAndLogOut(BuildContext context) async {
+  final confirmed = await showConfirmDialog(
+    context,
+    title: AppStrings.logOutTitle,
+    message: AppStrings.logOutMessage,
+    confirmLabel: AppStrings.logOut,
+  );
+  if (!confirmed || !context.mounted) return;
+  await AuthService().logOut();
+  if (!context.mounted) return;
+  showMessage(context, AppStrings.loggedOut);
+  // Clear every screen so Back can't return to the app.
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const LoginScreen()),
+    (route) => false,
+  );
+}
+
 /// The logged-in user's own profile.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  Future<void> _logOut(BuildContext context) async {
-    final confirmed = await showConfirmDialog(
-      context,
-      title: AppStrings.logOutTitle,
-      message: AppStrings.logOutMessage,
-      confirmLabel: AppStrings.logOut,
-    );
-    if (!confirmed || !context.mounted) return;
-    await AuthService().logOut();
-    if (!context.mounted) return;
-    showMessage(context, AppStrings.loggedOut);
-    // Clear every screen so Back can't return to the app.
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
+  Future<void> _logOut(BuildContext context) => confirmAndLogOut(context);
 
   /// "farmer" -> "Farmer".
   String _roleLabel(String role) => role[0].toUpperCase() + role.substring(1);

@@ -18,7 +18,9 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Interaction | `lib/widgets/confirm_dialog.dart` | `showConfirmDialog` (`showModalBottomSheet`) | Confirmation sheet before delete, log out and discarding a form |
 | Interaction | `lib/screens/register_screen.dart` | `_RoleCard` (`InkWell`) | Tappable Farmer / Buyer cards |
 | Interaction | `lib/utils/snackbars.dart` | `showMessage`, `showUndoMessage` | Feedback after every action, with Undo for deletes |
-| Navigation | `lib/screens/home_screen.dart` | `HomeScreen` (`NavigationBar`, `NavigationRail`, `IndexedStack`) | Role-based tabs: at the bottom on phones, a side menu on wide screens |
+| Navigation | `lib/screens/home_screen.dart` | `HomeScreen` (`NavigationBar`, `NavigationRail`, `AppSidebar`, `IndexedStack`) | Role-based tabs: bottom bar on phones, icon rail on tablets, full sidebar with counts and user card on laptops |
+| Navigation | `lib/widgets/home_nav.dart` | `HomeNav` (`InheritedWidget`) | Lets a dashboard's "See all" switch to another tab |
+| Layout | `lib/screens/farmer_home_screen.dart`, `buyer_home_screen.dart` | `FarmerHomeScreen`, `BuyerHomeScreen` (`LayoutBuilder`, `StatGrid`, `SectionCard`) | Home dashboards: stats, buyer demand, prices, newest crops; two columns on wide screens |
 | Navigation | `lib/screens/my_crops_screen.dart` | `_openForm` (`Navigator.push` with a result) | Opens the form and reloads when it returns `true` |
 | Navigation | `lib/screens/profile_screen.dart` | `_logOut` (`pushAndRemoveUntil`) | Clears every screen after log out |
 | Forms / validation | `lib/screens/register_screen.dart` | `RegisterScreen` | Name, email, password, confirm password, role, town, privacy consent |
