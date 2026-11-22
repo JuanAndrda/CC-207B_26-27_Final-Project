@@ -8,11 +8,14 @@
 - **Reference prices** are typed in by the admin from PSA OpenSTAT each month; they are not imported automatically.
 - **Admin** can only add prices. Managing users and removing posts is done in the Firebase console.
 - The **AI assistant** needs the real Firebase project with AI Logic turned on; it falls back to the manual form in the emulator.
+- **App Check** is set to "Unenforced (monitoring only)" for Firebase AI Logic, because the app does not use App Check yet. Google will turn enforcement on automatically on January 21, 2027; after that the AI only works if we add App Check (reCAPTCHA for web) or unenforce it again.
+- The **Gemini model** can be busy or retired by Google. When it does not answer within 20 seconds the farmer fills in the form by hand. To switch models, change `AiService.modelName` (we moved from `gemini-2.5-flash`, retired for new projects, to `gemini-3.5-flash`).
+- **Crop photos** are not supported yet; cards show a green placeholder with a leaf icon.
 
 ## Removed from the web version on purpose
 - Map view of sellers, and every map package and component.
 - Language settings (Hiligaynon / Filipino); the app is English for now.
-- Settings screen: replaced by the Profile tab.
+- Settings screen: replaced by the Profile page (the account button at the top right).
 - Separate "Follow seller" and "Saved listings": replaced by one Following tab with Crop Listings and Farmers.
 
 ## Planned features

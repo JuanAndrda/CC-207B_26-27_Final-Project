@@ -4,16 +4,21 @@ Where each course topic appears in our code. Each feature owner checks their row
 
 | Topic | File | Class / widget | Short description |
 |---|---|---|---|
-| Value widgets | `lib/widgets/listing_card.dart` | `ListingCard` (`Text`, `Icon`, `CircleAvatar`) | Shows a listing's crop, amount, price and town |
+| Value widgets | `lib/widgets/listing_card.dart` | `ListingCard`, `ListingGridCard`, `PriceText` (`Text.rich`, `Icon`) | A listing as a list row or a Market grid card, price in green with "/kg" |
+| Value widgets | `lib/widgets/status_badge.dart` | `StatusBadge` | Open / Closed pill with text, not color alone |
+| Value widgets | `lib/widgets/brand_app_bar.dart` | `AppLogo` (`Image.asset`) | The AgosUgnayan logo in the top bar and on Login |
 | Value widgets | `lib/screens/price_detail_screen.dart` | `PriceDetailScreen` (`LineChart`) | 12-month price chart with fl_chart |
-| Layout | `lib/main.dart` | `AgosUgnayanApp` (`Center` + `ConstrainedBox`) | Keeps the phone layout centered on wide web screens |
+| Layout | `lib/widgets/responsive_body.dart` | `ResponsiveBody` (`Align` + `ConstrainedBox`) | Keeps pages a readable width on laptops; full width on phones |
+| Layout | `lib/widgets/tab_page.dart` | `TabPage` (`Column`, `Expanded`) | Page heading on top, list below, for every main tab |
+| Layout | `lib/screens/marketplace_screen.dart` | `_buildGrid` (`LayoutBuilder`, `SliverGrid`) | 2 to 4 crop cards per row depending on the screen width |
 | Layout | `lib/screens/crop_form_screen.dart` | `CropFormScreen` (`ListView`, `Row`, `Expanded`) | Form fields stacked, quantity and unit side by side |
 | Layout | `lib/widgets/async_state_view.dart` | `AsyncStateView`, `_Message` | `Column`, `Padding`, `SizedBox` for loading, error and empty states |
 | Interaction | `lib/screens/following_screen.dart` | `FollowingScreen` (`SegmentedButton`) | Switch between followed Crop Listings and Farmers |
 | Interaction | `lib/screens/marketplace_screen.dart` | `MarketplaceScreen` (`ChoiceChip`, `DropdownButton`, `TextField`) | Crop and town filters, debounced search |
-| Interaction | `lib/widgets/confirm_dialog.dart` | `showConfirmDialog` | Confirmation before delete, log out and discarding a form |
+| Interaction | `lib/widgets/confirm_dialog.dart` | `showConfirmDialog` (`showModalBottomSheet`) | Confirmation sheet before delete, log out and discarding a form |
+| Interaction | `lib/screens/register_screen.dart` | `_RoleCard` (`InkWell`) | Tappable Farmer / Buyer cards |
 | Interaction | `lib/utils/snackbars.dart` | `showMessage`, `showUndoMessage` | Feedback after every action, with Undo for deletes |
-| Navigation | `lib/screens/home_screen.dart` | `HomeScreen` (`NavigationBar`, `IndexedStack`) | Bottom tabs that depend on the user's role |
+| Navigation | `lib/screens/home_screen.dart` | `HomeScreen` (`NavigationBar`, `NavigationRail`, `IndexedStack`) | Role-based tabs: at the bottom on phones, a side menu on wide screens |
 | Navigation | `lib/screens/my_crops_screen.dart` | `_openForm` (`Navigator.push` with a result) | Opens the form and reloads when it returns `true` |
 | Navigation | `lib/screens/profile_screen.dart` | `_logOut` (`pushAndRemoveUntil`) | Clears every screen after log out |
 | Forms / validation | `lib/screens/register_screen.dart` | `RegisterScreen` | Name, email, password, confirm password, role, town, privacy consent |
