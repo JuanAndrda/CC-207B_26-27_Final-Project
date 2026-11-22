@@ -24,7 +24,12 @@ class _StartScreenState extends State<StartScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.firebaseReady) _goToFirstScreen();
+    // Wait until this screen has finished drawing once. Navigating while
+    // Flutter is still building (e.g. no saved login, so no await happens
+    // first) throws "cannot be marked as needing to build".
+    if (widget.firebaseReady) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _goToFirstScreen());
+    }
   }
 
   Future<void> _goToFirstScreen() async {
