@@ -177,7 +177,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 allLabel: 'All towns',
                 options: kTowns,
                 icon: Icons.place_outlined,
-                width: 140,
+                width: 152,
                 onChanged: (town) => _update(() => _town = town, reload: true),
               ),
               _priceField(_minController, 'Min ₱', (v) => _minPrice = v),
@@ -243,7 +243,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   ) {
     return SizedBox(
       // Narrow, so town + min + max fit in one row on a phone.
-      width: 92,
+      width: 86,
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),

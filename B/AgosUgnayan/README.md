@@ -135,7 +135,7 @@ lib/
   utils/           Theme, strings, constants, validators, formatting, logger
 assets/fonts/      Inter and Barlow Condensed from the Figma design (Open Font License)
 test/              Unit and widget tests
-docs/              Checklist, AI Usage Log, Topic Coverage Matrix, AI Feature Spec, limitations
+docs/              Checklist, AI Usage Log, Topic Coverage Matrix, AI Feature Spec, limitations, usability review
 tool/              Placeholder Firebase settings (for CI) and the emulator seed script
 firestore.rules    Who can read and write what in Firestore
 ```

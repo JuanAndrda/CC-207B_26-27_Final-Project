@@ -165,6 +165,8 @@ class FilterDropdown extends StatelessWidget {
           prefixIcon: icon == null
               ? null
               : Icon(icon, size: 18, color: AppColors.textMuted),
+          // A narrow icon area leaves room for the text, e.g. "All towns".
+          prefixIconConstraints: const BoxConstraints(minWidth: 34),
           isDense: true,
         ),
         items: [

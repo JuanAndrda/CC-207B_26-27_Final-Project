@@ -225,7 +225,7 @@ class _PriceListScreenState extends State<PriceListScreen> {
         count: crops.length,
         minTileWidth: 440,
         maxColumns: 2,
-        tileHeight: 76,
+        tileHeight: 80,
         itemBuilder: (context, index) => Card(
           clipBehavior: Clip.antiAlias,
           child: _buildRow(crops[index], records),
@@ -295,6 +295,9 @@ class _PriceListScreenState extends State<PriceListScreen> {
                   Text(
                     '$kPriceSource · ${formatMonthKey(latest.month)}',
                     style: AppTextStyles.meta,
+                    // One line, so the row keeps its height on a phone.
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
