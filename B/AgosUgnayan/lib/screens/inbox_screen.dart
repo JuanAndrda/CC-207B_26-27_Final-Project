@@ -72,6 +72,11 @@ class _InboxScreenState extends State<InboxScreen> {
           header: PageHeader(
             eyebrow: 'Inbox',
             title: 'Messages',
+            help: const [
+              'A green dot means the other person wrote and you have not opened it yet.',
+              'Use "Unread only" to see just the new ones.',
+              'Start a chat from a crop ("Message farmer") or a request ("Message buyer").',
+            ],
             lead: unread == 0
                 ? (isFarmer
                       ? 'Chats with buyers about your crops.'

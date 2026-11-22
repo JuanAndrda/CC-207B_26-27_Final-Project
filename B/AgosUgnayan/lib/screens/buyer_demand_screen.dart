@@ -142,6 +142,11 @@ class _BuyerDemandScreenState extends State<BuyerDemandScreen> {
       header: PageHeader(
         eyebrow: 'Buyers in Iloilo',
         title: 'Buyer demand',
+        help: const [
+          'These are crops buyers in Iloilo are looking for, soonest first.',
+          'Turn on "Only crops I sell" to see requests for the crops in My Crops.',
+          'Tap a request, then "Message buyer" to offer your crop.',
+        ],
         lead: _isLoading
             ? 'What local buyers are looking for.'
             : '${_requests.length} open request'

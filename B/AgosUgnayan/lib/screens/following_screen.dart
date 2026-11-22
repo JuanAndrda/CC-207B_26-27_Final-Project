@@ -139,6 +139,10 @@ class _FollowingScreenState extends State<FollowingScreen> {
       header: const PageHeader(
         eyebrow: 'Saved for later',
         title: 'Following',
+        help: [
+          'Tap Follow on a crop or a farmer to keep them here.',
+          'Tap the heart to unfollow; Undo brings it back.',
+        ],
         lead: 'Crops and farmers you follow, to come back to them quickly.',
       ),
       toolbar: Column(

@@ -13,6 +13,7 @@ class PageHeader extends StatelessWidget {
     this.eyebrow,
     this.lead,
     this.trailing,
+    this.help,
   });
 
   /// Big title. It is shown in capitals, so write it normally.
@@ -27,6 +28,10 @@ class PageHeader extends StatelessWidget {
   /// Optional widget on the right, e.g. an "Add crop" button.
   final Widget? trailing;
 
+  /// Short tips for this page. When given, a "?" button next to the title
+  /// opens them (Nielsen: help and documentation). One tip per line.
+  final List<String>? help;
+
   @override
   Widget build(BuildContext context) {
     final texts = Column(
@@ -36,7 +41,25 @@ class PageHeader extends StatelessWidget {
           Text(eyebrow!.toUpperCase(), style: AppTextStyles.eyebrow),
           const SizedBox(height: 4),
         ],
-        Text(title.toUpperCase(), style: AppTextStyles.pageTitle),
+        Row(
+          children: [
+            Flexible(
+              child: Text(title.toUpperCase(), style: AppTextStyles.pageTitle),
+            ),
+            if (help != null)
+              IconButton(
+                tooltip: 'How this page works',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(
+                  Icons.help_outline,
+                  size: 20,
+                  color: AppColors.textMuted,
+                ),
+                onPressed: () =>
+                    showHelpSheet(context, title: title, tips: help!),
+              ),
+          ],
+        ),
         if (lead != null) ...[
           const SizedBox(height: 6),
           Text(lead!, style: AppTextStyles.lead),
@@ -71,4 +94,58 @@ class SectionTitle extends StatelessWidget {
       ],
     );
   }
+}
+
+/// A sheet from the bottom with a page's tips, each with a check mark.
+Future<void> showHelpSheet(
+  BuildContext context, {
+  required String title,
+  required List<String> tips,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'How $title works',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            for (final tip in tips)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.check_circle_outline,
+                      size: 18,
+                      color: AppColors.link,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(tip, style: const TextStyle(fontSize: 14)),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(
+                onPressed: () => Navigator.of(sheetContext).pop(),
+                child: const Text('Got it'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

@@ -58,32 +58,62 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final form = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('Welcome back', style: AppTextStyles.sectionTitle),
+        const SizedBox(height: 4),
+        const Text(
+          'Log in to see prices, buyers and your messages.',
+          style: AppTextStyles.lead,
+        ),
+        const SizedBox(height: AppSizes.sectionGap),
+        ..._fields(),
+      ],
+    );
     return Scaffold(
       body: Form(
         key: _formKey,
-        child: ListView(
-          children: [
-            const _Hero(),
-            // On a wide screen the form stays a comfortable width.
-            ResponsiveBody(
-              maxWidth: 440,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSizes.pagePadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: AppSizes.small),
-                    const Text(
-                      'Welcome back',
-                      style: AppTextStyles.sectionTitle,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Laptop: brand panel on the left, the form on the right.
+            if (constraints.maxWidth >= 900) {
+              return Row(
+                children: [
+                  const Expanded(child: _BrandPanel()),
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(32),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          child: form,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: AppSizes.fieldGap),
-                    ..._fields(),
-                  ],
+                  ),
+                ],
+              );
+            }
+            // Phone and tablet: green banner on top, the form below.
+            return ListView(
+              children: [
+                const _Hero(),
+                ResponsiveBody(
+                  maxWidth: 440,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSizes.pagePadding,
+                      AppSizes.sectionGap,
+                      AppSizes.pagePadding,
+                      AppSizes.pagePadding,
+                    ),
+                    child: form,
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -173,6 +203,113 @@ class _Hero extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The left half of the laptop login: logo, name, tagline and the three
+/// things the app helps with, so new visitors know what it is for.
+class _BrandPanel extends StatelessWidget {
+  const _BrandPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.primary,
+      padding: const EdgeInsets.all(48),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AppLogo(size: 64),
+              const SizedBox(height: 16),
+              Text(
+                AppStrings.appName,
+                style: AppTextStyles.logo.copyWith(fontSize: 52, height: 0.9),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                AppStrings.tagline,
+                style: TextStyle(color: Colors.white, fontSize: 17),
+              ),
+              const SizedBox(height: 36),
+              const _Point(
+                icon: Icons.trending_up,
+                title: 'Real PSA prices',
+                text:
+                    'Monthly farmgate prices for Iloilo, with the month shown.',
+              ),
+              const _Point(
+                icon: Icons.storefront_outlined,
+                title: 'Sell to local buyers',
+                text: 'Farmers list crops; buyers post what they need.',
+              ),
+              const _Point(
+                icon: Icons.chat_bubble_outline,
+                title: 'Talk directly',
+                text: 'Message each other and agree on a fair price.',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One line on the brand panel: an icon in a circle, a title and a sentence.
+class _Point extends StatelessWidget {
+  const _Point({required this.icon, required this.title, required this.text});
+
+  final IconData icon;
+  final String title;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.16),
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  text,
+                  style: const TextStyle(
+                    color: AppColors.onPrimaryMuted,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

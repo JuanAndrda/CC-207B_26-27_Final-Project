@@ -155,6 +155,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       header: const PageHeader(
         eyebrow: 'Fresh from Iloilo farms',
         title: 'Market',
+        help: [
+          'Type in the search box to find a crop, farmer or town.',
+          'Pick a town, a crop chip or a price range to narrow the list. "Clear all filters" starts over.',
+          'Use Sort to see the cheapest or the newest crops first.',
+          'Tap a crop to see details, message the farmer or follow it.',
+        ],
         lead: 'Crops for sale by local farmers. Tap one to see details.',
       ),
       toolbar: Column(

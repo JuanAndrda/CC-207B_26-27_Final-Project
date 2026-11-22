@@ -1,5 +1,5 @@
-// Profile page (opened from the top-right button): shows who is logged in and
-// has the Log out button at the bottom, behind a confirmation dialog.
+// Profile page (opened from the top bar or the sidebar): shows who is logged
+// in, an Edit profile button, and Log out at the bottom behind a question.
 
 import 'package:flutter/material.dart';
 
@@ -12,6 +12,7 @@ import '../utils/theme.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/info_row.dart';
 import '../widgets/responsive_body.dart';
+import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 
 /// Asks "Log out?" and, if confirmed, logs out and opens the login screen.
@@ -35,10 +36,23 @@ Future<void> confirmAndLogOut(BuildContext context) async {
 }
 
 /// The logged-in user's own profile.
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _logOut(BuildContext context) => confirmAndLogOut(context);
+
+  /// Opens Edit profile and redraws with the new values when it was saved.
+  Future<void> _edit() async {
+    final saved = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+    if (saved == true && mounted) setState(() {});
+  }
 
   /// "farmer" -> "Farmer".
   String _roleLabel(String role) => role[0].toUpperCase() + role.substring(1);
@@ -90,6 +104,16 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: AppSizes.fieldGap),
+            OutlinedButton.icon(
+              onPressed: _edit,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Edit profile'),
+            ),
+            if (user.about.isNotEmpty) ...[
+              const SizedBox(height: AppSizes.fieldGap),
+              Text(user.about, style: const TextStyle(fontSize: 15)),
+            ],
             const SizedBox(height: AppSizes.sectionGap),
             Card(
               child: Column(

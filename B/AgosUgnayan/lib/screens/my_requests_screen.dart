@@ -161,6 +161,11 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
       header: PageHeader(
         eyebrow: 'What you need',
         title: 'My requests',
+        help: const [
+          'Post a request to tell farmers what you need. They can message you.',
+          'When you found a farmer, use "Close request" so farmers stop offering.',
+          'Requests also close by themselves after their "needed by" date.',
+        ],
         lead: 'Farmers see open requests in Buyer Demand and can message you.',
         trailing: FilledButton.icon(
           onPressed: () => _openForm(),

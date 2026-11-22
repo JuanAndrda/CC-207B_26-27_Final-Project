@@ -189,9 +189,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (index >= 0) _select(index);
   }
 
-  void _openProfile() {
-    Navigator.of(context)
+  /// Opens the profile; redraws afterwards so the sidebar shows any new
+  /// name or town right away.
+  Future<void> _openProfile() async {
+    await Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
+    if (mounted) setState(() {});
   }
 
   @override

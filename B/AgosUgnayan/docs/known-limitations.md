@@ -12,6 +12,8 @@
 - The **Gemini model** can be busy or retired by Google. When it does not answer within 20 seconds the farmer fills in the form by hand. To switch models, change `AiService.modelName` (we moved from `gemini-2.5-flash`, retired for new projects, to `gemini-3.5-flash`).
 - **Crop photos**: farmers can't upload their own photos yet. Crops show a sample photo from Wikipedia, always labeled "Sample photo" with the photographer and license; offline, or if Wikipedia can't be reached, a green leaf placeholder shows instead. Photos are saved on the device for a week.
 
+- **Changing your name** in Edit profile does not rename crops, requests or chats you posted before; they keep the name they were posted with (the app says so on the Edit profile page).
+
 ## Removed from the web version on purpose
 - Map view of sellers, and every map package and component.
 - Language settings (Hiligaynon / Filipino); the app is English for now.

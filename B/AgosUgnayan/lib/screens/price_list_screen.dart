@@ -169,7 +169,18 @@ class _PriceListScreenState extends State<PriceListScreen> {
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PageHeader(eyebrow: 'Farmgate prices', title: 'Market prices'),
+          const PageHeader(
+            eyebrow: 'Farmgate prices',
+            title: 'Market prices',
+            help: [
+              'These are PSA farmgate prices for Iloilo Province: what farmers '
+                  'were paid per kg, on average, that month.',
+              'The month is shown on every price. PSA publishes a few months '
+                  'late, so these are a guide, not live prices.',
+              '▲ means the price went up since the month before, ▼ down.',
+              'Tap a crop to see its last 12 months.',
+            ],
+          ),
           if (isAdmin) ...[const SizedBox(height: 12), _buildAdminActions()],
         ],
       ),

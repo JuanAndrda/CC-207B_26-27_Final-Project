@@ -87,6 +87,34 @@ class AuthService {
     return AppUser.fromMap(doc.id, doc.data()!);
   }
 
+  /// Saves the logged-in user's name, town and "about" text, and updates
+  /// [currentUser] so every screen shows the new values. Email and role
+  /// can't be changed here (the rules don't allow changing the role).
+  Future<AppUser> updateProfile({
+    required String name,
+    required String town,
+    required String about,
+  }) async {
+    final me = currentUser!;
+    await runSafely('update profile', () {
+      return _users.doc(me.id).update({
+        'name': name.trim(),
+        'town': town,
+        'about': about.trim(),
+      });
+    });
+    currentUser = AppUser(
+      id: me.id,
+      name: name.trim(),
+      email: me.email,
+      role: me.role,
+      town: town,
+      about: about.trim(),
+      createdAt: me.createdAt,
+    );
+    return currentUser!;
+  }
+
   /// The Firebase Auth user id if someone is still logged in from last time.
   String? get savedLoginId => _auth.currentUser?.uid;
 

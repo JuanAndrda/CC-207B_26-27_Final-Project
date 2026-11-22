@@ -26,6 +26,9 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Navigation | `lib/screens/profile_screen.dart` | `_logOut` (`pushAndRemoveUntil`) | Clears every screen after log out |
 | Forms / validation | `lib/screens/register_screen.dart` | `RegisterScreen` | Name, email, password, confirm password, role, town, privacy consent |
 | Forms / validation | `lib/screens/crop_form_screen.dart` | `CropFormScreen` (`PopScope`, `_quantityValidator`, `_priceValidator`) | Website-style listing form: required and optional fields, limits, PSA reference hint, "Discard changes?" on Back and Cancel |
+| Forms / validation | `lib/screens/edit_profile_screen.dart` | `EditProfileScreen` (`PopScope`, `LabeledField`) | Edit name, town and about, validated, with "Discard changes?" |
+| Persistence | `lib/services/auth_service.dart` | `AuthService.updateProfile` | Saves the profile and refreshes the logged-in user everywhere |
+| Interaction | `lib/widgets/page_header.dart` | `PageHeader.help`, `showHelpSheet` | "?" next to page titles opens short tips for that page |
 | Forms / validation | `lib/widgets/labeled_field.dart` | `LabeledField`, `RequiredNote` | Label above the field with a red star or an "Optional" tag |
 | Forms / validation | `lib/utils/validators.dart` | `Validators` | Reusable validators with friendly messages, unit-tested |
 | Async / API | `lib/utils/app_exception.dart` | `runSafely` | One try/catch with timeout around every Firebase call |

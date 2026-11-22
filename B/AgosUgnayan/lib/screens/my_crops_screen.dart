@@ -182,6 +182,12 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
       header: PageHeader(
         eyebrow: user.town.isEmpty ? 'Your farm' : '${user.town}, Iloilo',
         title: 'My crops',
+        help: const [
+          'Active crops are shown to buyers in the Market.',
+          'Use the menu on a crop to edit it, mark it sold out, or remove it.',
+          'Sold out and removed crops are kept, so you can put them back on sale.',
+          'Every change has Undo in the message at the bottom.',
+        ],
         lead: 'Buyers see your Active crops in the Market.',
         trailing: FilledButton.icon(
           onPressed: () => _openForm(),

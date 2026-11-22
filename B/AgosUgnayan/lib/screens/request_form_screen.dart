@@ -10,11 +10,13 @@ import '../utils/app_exception.dart';
 import '../utils/constants.dart';
 import '../utils/format.dart';
 import '../utils/snackbars.dart';
+import '../utils/strings.dart';
 import '../utils/theme.dart';
 import '../utils/validators.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/date_field.dart';
 import '../widgets/dropdown_field.dart';
+import '../widgets/labeled_field.dart';
 import '../widgets/loading_button.dart';
 import '../widgets/page_header.dart';
 import '../widgets/responsive_body.dart';
@@ -141,84 +143,119 @@ class _RequestFormScreenState extends State<RequestFormScreen> {
                       'with offers.',
                 ),
                 const SizedBox(height: AppSizes.sectionGap),
-                DropdownField(
+                const RequiredNote(),
+                const SizedBox(height: AppSizes.fieldGap),
+                LabeledField(
                   label: 'Crop',
-                  items: kCrops,
-                  value: _crop,
-                  onChanged: (value) => setState(() => _crop = value),
-                ),
-                const SizedBox(height: AppSizes.fieldGap),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _quantityController,
-                        decoration: const InputDecoration(
-                          labelText: 'Quantity',
-                        ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.positiveNumber,
-                      ),
-                    ),
-                    const SizedBox(width: AppSizes.small),
-                    Expanded(
-                      child: DropdownField(
-                        label: 'Unit',
-                        items: kUnits,
-                        value: _unit,
-                        onChanged: (value) => setState(() => _unit = value),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.fieldGap),
-                TextFormField(
-                  controller: _targetPriceController,
-                  decoration: InputDecoration(
-                    labelText: 'Target price per ${_unit ?? 'unit'} (optional)',
-                    prefixText: '₱ ',
+                  isRequired: true,
+                  child: DropdownField(
+                    label: null,
+                    hint: 'Choose a crop',
+                    items: kCrops,
+                    value: _crop,
+                    onChanged: (value) => setState(() => _crop = value),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  validator: _validateTargetPrice,
                 ),
                 const SizedBox(height: AppSizes.fieldGap),
-                DateField(
+                LabeledField(
+                  label: 'Quantity',
+                  isRequired: true,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextFormField(
+                          controller: _quantityController,
+                          decoration: const InputDecoration(
+                            hintText: 'e.g. 100',
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          validator: Validators.positiveNumber,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizes.small),
+                      Expanded(
+                        flex: 2,
+                        child: DropdownField(
+                          label: null,
+                          items: kUnits,
+                          value: _unit,
+                          onChanged: (value) => setState(() => _unit = value),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSizes.fieldGap),
+                LabeledField(
+                  label: 'Target price per ${_unit ?? 'unit'}',
+                  help: 'Leave empty if you are open to offers.',
+                  child: TextFormField(
+                    controller: _targetPriceController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 42.00',
+                      prefixText: '₱ ',
+                      suffixText: '/${_unit ?? 'unit'}',
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: _validateTargetPrice,
+                  ),
+                ),
+                const SizedBox(height: AppSizes.fieldGap),
+                LabeledField(
                   label: 'Needed by',
-                  value: _neededBy,
-                  firstDate: DateTime.now(),
-                  onChanged: (date) => setState(() {
-                    _neededBy = date;
-                    _hasChanges = true;
-                  }),
-                ),
-                const SizedBox(height: AppSizes.fieldGap),
-                DropdownField(
-                  label: 'Delivery town',
-                  items: kTowns,
-                  value: _town,
-                  onChanged: (value) => setState(() => _town = value),
-                ),
-                const SizedBox(height: AppSizes.fieldGap),
-                TextFormField(
-                  controller: _notesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Notes (optional)',
-                    hintText: 'e.g. For a carinderia, weekly order',
+                  isRequired: true,
+                  child: DateField(
+                    label: null,
+                    value: _neededBy,
+                    firstDate: DateTime.now(),
+                    onChanged: (date) => setState(() {
+                      _neededBy = date;
+                      _hasChanges = true;
+                    }),
                   ),
-                  maxLines: 3,
-                  maxLength: 300,
-                  validator: Validators.maxLength(300),
+                ),
+                const SizedBox(height: AppSizes.fieldGap),
+                LabeledField(
+                  label: 'Delivery town',
+                  isRequired: true,
+                  child: DropdownField(
+                    label: null,
+                    items: kTowns,
+                    value: _town,
+                    onChanged: (value) => setState(() => _town = value),
+                  ),
+                ),
+                const SizedBox(height: AppSizes.fieldGap),
+                LabeledField(
+                  label: 'Notes',
+                  child: TextFormField(
+                    controller: _notesController,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. For a carinderia, weekly order',
+                    ),
+                    maxLines: 3,
+                    maxLength: 300,
+                    validator: Validators.maxLength(300),
+                  ),
                 ),
                 const SizedBox(height: AppSizes.sectionGap),
                 LoadingButton(
                   label: _isEditing ? 'Save changes' : 'Post request',
                   isLoading: _isSaving,
                   onPressed: _save,
+                ),
+                const SizedBox(height: AppSizes.small),
+                TextButton(
+                  onPressed: _isSaving
+                      ? null
+                      : () => Navigator.of(context).maybePop(),
+                  child: const Text(AppStrings.cancel),
                 ),
               ],
             ),
