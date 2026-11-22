@@ -11,6 +11,7 @@ import '../utils/format.dart';
 import '../utils/snackbars.dart';
 import '../utils/strings.dart';
 import '../utils/theme.dart';
+import '../widgets/responsive_body.dart';
 import '../widgets/async_state_view.dart';
 
 /// The chat with [otherName]. [draft] is pre-typed text the user can send.
@@ -69,72 +70,97 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.otherName.toUpperCase())),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<List<ChatMessage>>(
-              stream: _messages,
-              builder: (context, snapshot) {
-                final messages = snapshot.data ?? [];
-                return AsyncStateView(
-                  isLoading:
-                      snapshot.connectionState == ConnectionState.waiting,
-                  errorMessage: snapshot.hasError
-                      ? AppStrings.networkError
-                      : null,
-                  onRetry: () => setState(
-                    () => _messages = _service.watchMessages(widget.chatId),
-                  ),
-                  isEmpty: messages.isEmpty,
-                  emptyMessage: 'Say hello to ${widget.otherName}!',
-                  // reverse: true puts item 0 (the newest) at the bottom.
-                  builder: (context) => ListView.builder(
-                    reverse: true,
-                    padding: const EdgeInsets.all(AppSizes.small),
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) =>
-                        _buildBubble(messages[index]),
-                  ),
-                );
-              },
+      appBar: AppBar(title: Text(widget.otherName)),
+      // On a wide screen the chat stays a readable width in the middle.
+      body: ResponsiveBody(
+        maxWidth: 760,
+        child: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<List<ChatMessage>>(
+                stream: _messages,
+                builder: (context, snapshot) {
+                  final messages = snapshot.data ?? [];
+                  return AsyncStateView(
+                    isLoading:
+                        snapshot.connectionState == ConnectionState.waiting,
+                    errorMessage: snapshot.hasError
+                        ? AppStrings.networkError
+                        : null,
+                    onRetry: () => setState(
+                      () => _messages = _service.watchMessages(widget.chatId),
+                    ),
+                    isEmpty: messages.isEmpty,
+                    emptyMessage: 'Say hello to ${widget.otherName}!',
+                    // reverse: true puts item 0 (the newest) at the bottom.
+                    builder: (context) => ListView.builder(
+                      reverse: true,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.pagePadding,
+                        vertical: 12,
+                      ),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) =>
+                          _buildBubble(messages[index]),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          _buildInputBar(),
-        ],
+            _buildInputBar(),
+          ],
+        ),
       ),
     );
   }
 
-  /// One message: mine on the right in green, theirs on the left in white.
+  /// One message, like the website: mine on the right in light green,
+  /// theirs on the left in white. The "tail" corner points to the sender.
   Widget _buildBubble(ChatMessage message) {
     final isMine = message.senderId == _myId;
+    const round = Radius.circular(14);
+    const tail = Radius.circular(4);
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        constraints: const BoxConstraints(maxWidth: 300),
-        decoration: BoxDecoration(
-          color: isMine ? AppColors.primaryDark : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSizes.radiusCard),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              message.text,
-              style: TextStyle(color: isMine ? Colors.white : AppColors.text),
-            ),
-            Text(
-              formatTime(message.createdAt),
-              style: TextStyle(
-                fontSize: 11,
-                color: isMine ? AppColors.onPrimaryMuted : AppColors.textMuted,
+      child: FractionallySizedBox(
+        // Bubbles use at most 82% of the width, like the website.
+        widthFactor: 0.82,
+        alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Align(
+          alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isMine ? AppColors.primaryLight : AppColors.surface,
+              border: Border.all(
+                color: isMine ? AppColors.primaryLight : AppColors.border,
+              ),
+              borderRadius: BorderRadius.only(
+                topLeft: round,
+                topRight: round,
+                bottomLeft: isMine ? round : tail,
+                bottomRight: isMine ? tail : round,
               ),
             ),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  message.text,
+                  style: const TextStyle(fontSize: 15, color: AppColors.text),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formatTime(message.createdAt),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -143,9 +169,19 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildInputBar() {
     return SafeArea(
       child: Container(
-        color: AppColors.surface,
-        padding: const EdgeInsets.all(AppSizes.small),
+        // White bar with a thin line on top (website .composer).
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.pagePadding,
+          10,
+          AppSizes.pagePadding,
+          10,
+        ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
               child: TextField(
@@ -157,10 +193,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 decoration: const InputDecoration(hintText: 'Type a message'),
               ),
             ),
-            IconButton.filled(
-              tooltip: 'Send',
-              onPressed: _isSending ? null : _send,
-              icon: const Icon(Icons.send),
+            const SizedBox(width: AppSizes.small),
+            SizedBox(
+              height: AppSizes.minTapTarget,
+              child: FilledButton.icon(
+                onPressed: _isSending ? null : _send,
+                icon: const Icon(Icons.send, size: 18),
+                label: const Text('Send'),
+              ),
             ),
           ],
         ),

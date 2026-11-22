@@ -1,49 +1,71 @@
 // App colors, sizes, text styles and the Material theme.
-// Every value comes from the AgosUgnayan Figma file (v3 row), so screens never
-// hard-code a color or size. To change the look of the whole app, edit here.
+// Every value matches the AgosUgnayan website (app/src/styles/tokens.css in
+// the agosugnayan repo), so the Flutter app looks like the website. Screens
+// never hard-code a color or size. To change the look of the whole app, edit here.
 
 import 'package:flutter/material.dart';
 
-/// Colors taken from the Figma v3 frames.
+/// Colors from the website's design tokens. The comment after each one says
+/// where it is used, and the CSS variable name in brackets.
 class AppColors {
   AppColors._();
 
-  static const Color primary = Color(
-    0xFF4A7F2C,
-  ); // top bars, links, eyebrow text
-  static const Color primaryDark = Color(0xFF2F5E1C); // main buttons, prices
+  static const Color primary = Color(0xFF4A7F2C); // top bar, buttons (--brand)
+  static const Color primaryDark = Color(0xFF1E5631); // prices (--gdark)
+  static const Color link = Color(0xFF3E7D3A); // links, outlines (--g600)
   static const Color primaryLight = Color(
-    0xFFEAF4E4,
-  ); // chips, avatars, nav pill
+    0xFFE3EFE5,
+  ); // tiles, nav pill (--g50)
   static const Color onPrimaryMuted = Color(0xFFDDEBD3); // subtitle on green
-  static const Color background = Color(0xFFF1F2ED); // page background
-  static const Color surface = Colors.white; // cards and inputs
-  static const Color segmented = Color(0xFFECEAE4); // segmented control track
-  static const Color border = Color(0xFFE4E2DA);
-  static const Color text = Color(0xFF2B2118);
-  static const Color textMuted = Color(0xFF7A7468);
-  static const Color accent = Color(0xFFE07B2E); // badge counts
-  static const Color danger = Color(0xFFC0392B);
-  static const Color dangerLight = Color(0xFFFBE9E7);
+  static const Color background = Color(0xFFF5F5F0); // page (--bg)
+  static const Color surface = Colors.white; // cards, inputs (--surface)
+  static const Color border = Color(0xFFE6E6DF); // cards (--border)
+  static const Color line = Color(0xFFCFCFC4); // chips, inputs (--line)
+  static const Color text = Color(0xFF1F1F1A); // (--text)
+  static const Color textMuted = Color(0xFF64645A); // meta text (--muted)
+  static const Color segmented = Color(0xFFEEEEE7); // grey boxes (--grey-50)
+  static const Color accent = Color(0xFFD9822B); // badges, counts (--orange)
+  static const Color accentInk = Color(0xFF2E1C0B); // text on orange
+  static const Color warningLight = Color(
+    0xFFFDF0DC,
+  ); // warning box (--amber-50)
+  static const Color warningInk = Color(0xFF8A5300); // warning icon
+  static const Color danger = Color(0xFFC62828); // errors, price drop (--down)
+  static const Color dangerLight = Color(0xFFFBEAEA); // error box (--red-50)
+  static const Color dangerStrong = Color(0xFFB3261E); // error toast
+  static const Color info = Color(0xFF1F5FA8); // "Answered" status (--blue)
+  static const Color infoLight = Color(0xFFE4EDF8);
+  static const Color toast = Color(0xFF1F2A1A); // snackbar background
+  static const Color toastAction = Color(0xFF9BD48A); // snackbar button
 }
 
-/// Spacing and corner radius values used across the app.
+/// Spacing and corner radius values (8 px grid, like the website).
 class AppSizes {
   AppSizes._();
 
-  static const double pagePadding = 16;
-  static const double sectionGap = 16;
-  static const double fieldGap = 14;
+  static const double pagePadding = 20; // side margins (--gutter)
+  static const double sectionGap = 24; // between sections (--section-gap)
+  static const double fieldGap = 18; // between form fields
   static const double labelGap = 6;
   static const double small = 8;
 
-  static const double radiusCard = 14;
-  static const double radiusButton = 12;
+  static const double radiusCard = 12; // (--radius-card)
+  static const double radiusButton = 10; // (--radius-btn)
   static const double radiusInput = 10;
-  static const double radiusChip = 10;
+  static const double radiusChip = 18;
   static const double radiusSmallButton = 8;
+  static const double radiusSheet = 18;
 
   static const double minTapTarget = 48; // accessibility minimum
+
+  /// Screens at least this wide get the side menu instead of bottom tabs.
+  static const double wideBreakpoint = 600;
+
+  /// Widest a list or grid page gets on a big screen, so lines stay readable.
+  static const double maxListWidth = 960;
+
+  /// Widest a form or detail page gets on a big screen.
+  static const double maxFormWidth = 640;
 }
 
 /// Font family names. The font files are in assets/fonts and listed in
@@ -59,39 +81,86 @@ class AppFonts {
 class AppTextStyles {
   AppTextStyles._();
 
-  /// Big uppercase page title, e.g. "HELLO, MANG PEDRO." (32 ExtraBold).
+  /// Big uppercase page title, e.g. "MY CROPS" (website .ptitle).
   static const TextStyle pageTitle = TextStyle(
     fontFamily: AppFonts.display,
     fontWeight: FontWeight.w800,
-    fontSize: 32,
-    height: 34 / 32,
+    fontSize: 31,
+    height: 1.0,
     color: AppColors.text,
   );
 
-  /// Small green uppercase line above a page title, e.g. "LEON, ILOILO".
+  /// Small green uppercase line above a page title (website .eyebrow).
   static const TextStyle eyebrow = TextStyle(
     fontFamily: AppFonts.body,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     fontSize: 12,
-    letterSpacing: 0.96,
-    color: AppColors.primary,
+    letterSpacing: 1.1,
+    color: AppColors.link,
+  );
+
+  /// Grey sentence under a page title (website .lead).
+  static const TextStyle lead = TextStyle(
+    fontFamily: AppFonts.body,
+    fontSize: 14,
+    color: AppColors.textMuted,
+  );
+
+  /// Section heading inside a page, e.g. "Your listings".
+  static const TextStyle sectionTitle = TextStyle(
+    fontFamily: AppFonts.body,
+    fontWeight: FontWeight.w700,
+    fontSize: 16,
+    color: AppColors.text,
+  );
+
+  /// The "AgosUgnayan" word next to the logo in the top bar.
+  static const TextStyle logo = TextStyle(
+    fontFamily: AppFonts.display,
+    fontWeight: FontWeight.w800,
+    fontSize: 23,
+    color: Colors.white,
+  );
+
+  /// A price in dark green, e.g. "₱45.00" (website .price).
+  static const TextStyle price = TextStyle(
+    fontFamily: AppFonts.body,
+    fontWeight: FontWeight.w700,
+    fontSize: 20,
+    color: AppColors.primaryDark,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  /// Small grey text: places, dates, sources (website .meta).
+  static const TextStyle meta = TextStyle(
+    fontFamily: AppFonts.body,
+    fontSize: 12,
+    color: AppColors.textMuted,
   );
 
   /// "See all" style link next to a section heading.
   static const TextStyle link = TextStyle(
     fontFamily: AppFonts.body,
     fontWeight: FontWeight.w600,
-    fontSize: 13,
-    color: AppColors.primary,
+    fontSize: 14,
+    color: AppColors.link,
   );
 }
 
-/// Builds the app-wide [ThemeData] so buttons, inputs, cards and the bottom
-/// navigation look like Figma without styling each widget by hand.
+/// Builds the app-wide [ThemeData] so buttons, inputs, cards and navigation
+/// look like the website without styling each widget by hand.
 ThemeData buildAppTheme() {
   const inputBorder = OutlineInputBorder(
     borderRadius: BorderRadius.all(Radius.circular(AppSizes.radiusInput)),
-    borderSide: BorderSide(color: AppColors.border),
+    borderSide: BorderSide(color: AppColors.line),
+  );
+  const buttonShape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(AppSizes.radiusButton)),
+  );
+  const buttonText = TextStyle(
+    fontFamily: AppFonts.body,
+    fontSize: 15,
+    fontWeight: FontWeight.w600,
   );
 
   return ThemeData(
@@ -100,31 +169,35 @@ ThemeData buildAppTheme() {
     scaffoldBackgroundColor: AppColors.background,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primary,
-      primary: AppColors.primaryDark,
-      secondary: AppColors.primary,
+      primary: AppColors.primary,
+      secondary: AppColors.link,
       error: AppColors.danger,
       surface: AppColors.surface,
     ),
     textTheme: const TextTheme(
       titleLarge: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-      titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-      bodyLarge: TextStyle(fontSize: 14),
-      bodyMedium: TextStyle(fontSize: 14),
+      titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      bodyLarge: TextStyle(fontSize: 15, height: 1.4),
+      bodyMedium: TextStyle(fontSize: 14, height: 1.4),
       bodySmall: TextStyle(fontSize: 12, color: AppColors.textMuted),
-      labelLarge: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
     ).apply(bodyColor: AppColors.text, displayColor: AppColors.text),
+    // Green top bar, 56 px tall, 17 px title (website .top).
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      toolbarHeight: 56,
+      titleSpacing: 4,
       titleTextStyle: TextStyle(
-        fontFamily: AppFonts.display,
-        fontWeight: FontWeight.w700,
-        fontSize: 24,
-        letterSpacing: 0.48,
+        fontFamily: AppFonts.body,
+        fontWeight: FontWeight.w600,
+        fontSize: 17,
         color: Colors.white,
       ),
     ),
+    // Flat white cards with a thin border (website .card).
     cardTheme: const CardThemeData(
       color: AppColors.surface,
       elevation: 0,
@@ -134,62 +207,141 @@ ThemeData buildAppTheme() {
         side: BorderSide(color: AppColors.border),
       ),
     ),
+    dividerTheme: const DividerThemeData(
+      color: AppColors.border,
+      thickness: 1,
+      space: 1,
+    ),
+    // 48 px inputs; errors get a red outline on a light red fill (website .inp).
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 15),
+      labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 15),
+      floatingLabelStyle: const TextStyle(
+        color: AppColors.link,
+        fontWeight: FontWeight.w600,
+      ),
+      errorStyle: const TextStyle(
+        color: AppColors.danger,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+      ),
+      helperStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
       border: inputBorder,
       enabledBorder: inputBorder,
       focusedBorder: inputBorder.copyWith(
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: const BorderSide(color: AppColors.link, width: 1.5),
       ),
       errorBorder: inputBorder.copyWith(
-        borderSide: const BorderSide(color: AppColors.danger),
+        borderSide: const BorderSide(color: AppColors.danger, width: 2),
       ),
       focusedErrorBorder: inputBorder.copyWith(
-        borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
+        borderSide: const BorderSide(color: AppColors.danger, width: 2),
       ),
     ),
+    // Primary button: green, white text, 48 px tall (website .btn-primary).
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primaryDark,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        minimumSize: const Size.fromHeight(AppSizes.minTapTarget),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-        ),
+        disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.55),
+        disabledForegroundColor: Colors.white,
+        minimumSize: const Size(64, AppSizes.minTapTarget),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        textStyle: buttonText,
+        shape: buttonShape,
       ),
     ),
+    // Outline button: green border and text on white (website .btn-outline).
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primaryDark,
+        foregroundColor: AppColors.link,
         backgroundColor: AppColors.surface,
-        side: const BorderSide(color: AppColors.primaryDark, width: 1.5),
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmallButton),
-        ),
+        minimumSize: const Size(64, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        side: const BorderSide(color: AppColors.link, width: 1.5),
+        textStyle: buttonText.copyWith(fontSize: 14),
+        shape: buttonShape,
       ),
     ),
-    chipTheme: const ChipThemeData(
-      backgroundColor: AppColors.primaryLight,
-      labelStyle: TextStyle(
-        color: AppColors.primaryDark,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
+    // Text button: green text, no box (website .btn-text).
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.link,
+        minimumSize: const Size(44, 44),
+        textStyle: buttonText.copyWith(fontSize: 14),
       ),
-      side: BorderSide.none,
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      elevation: 2,
+      extendedTextStyle: buttonText,
       shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(AppSizes.radiusCard)),
+      ),
+    ),
+    // Chips: white with a grey outline; selected ones turn brand green with
+    // white text (website .chip and .chip.on).
+    chipTheme: ChipThemeData(
+      backgroundColor: AppColors.surface,
+      selectedColor: AppColors.primary,
+      checkmarkColor: Colors.white,
+      labelStyle: const TextStyle(
+        color: AppColors.text,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      secondaryLabelStyle: const TextStyle(
+        color: Colors.white,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      side: WidgetStateBorderSide.resolveWith(
+        (states) => BorderSide(
+          color: states.contains(WidgetState.selected)
+              ? AppColors.primary
+              : AppColors.line,
+        ),
+      ),
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(AppSizes.radiusChip)),
       ),
     ),
+    // Segmented control: grey track, white selected part (website .seg).
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        backgroundColor: AppColors.segmented,
+        selectedBackgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textMuted,
+        selectedForegroundColor: AppColors.primaryDark,
+        side: const BorderSide(color: AppColors.segmented, width: 3),
+        minimumSize: const Size(0, 44),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(
+            Radius.circular(AppSizes.radiusButton),
+          ),
+        ),
+      ),
+    ),
+    // Bottom tabs: white bar, light green pill behind the current tab.
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surface,
       indicatorColor: AppColors.primaryLight,
       surfaceTintColor: Colors.transparent,
+      height: 66,
+      elevation: 0,
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          color: states.contains(WidgetState.selected)
+              ? AppColors.primaryDark
+              : AppColors.textMuted,
+        ),
+      ),
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
           fontSize: 12,
@@ -202,6 +354,56 @@ ThemeData buildAppTheme() {
         ),
       ),
     ),
-    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+    // Side menu on wide screens: same colors as the bottom tabs.
+    navigationRailTheme: const NavigationRailThemeData(
+      backgroundColor: AppColors.surface,
+      indicatorColor: AppColors.primaryLight,
+      selectedIconTheme: IconThemeData(color: AppColors.primaryDark),
+      unselectedIconTheme: IconThemeData(color: AppColors.textMuted),
+      selectedLabelTextStyle: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: AppColors.primaryDark,
+      ),
+      unselectedLabelTextStyle: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: AppColors.text,
+      ),
+    ),
+    // Toasts: dark green-black box with a light green action (website .toast).
+    snackBarTheme: const SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: AppColors.toast,
+      actionTextColor: AppColors.toastAction,
+      contentTextStyle: TextStyle(color: Colors.white, fontSize: 14),
+      width: 456,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(AppSizes.radiusCard)),
+      ),
+    ),
+    // Bottom sheets: rounded top corners (website .sheet).
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      showDragHandle: true,
+      dragHandleColor: AppColors.line,
+      constraints: BoxConstraints(maxWidth: 560),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizes.radiusSheet),
+        ),
+      ),
+    ),
+    dialogTheme: const DialogThemeData(
+      backgroundColor: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(AppSizes.radiusSheet)),
+      ),
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: AppColors.primary,
+    ),
   );
 }

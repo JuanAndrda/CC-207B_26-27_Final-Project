@@ -18,7 +18,7 @@ void showError(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.danger),
+      SnackBar(content: Text(message), backgroundColor: AppColors.dangerStrong),
     );
 }
 

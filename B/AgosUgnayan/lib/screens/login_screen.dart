@@ -8,7 +8,9 @@ import '../utils/snackbars.dart';
 import '../utils/strings.dart';
 import '../utils/theme.dart';
 import '../utils/validators.dart';
+import '../widgets/brand_app_bar.dart';
 import '../widgets/loading_button.dart';
+import '../widgets/responsive_body.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
 
@@ -57,64 +59,118 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(AppSizes.pagePadding * 1.5),
-            children: [
-              const SizedBox(height: 40),
-              const Icon(Icons.eco, size: 56, color: AppColors.primary),
-              const SizedBox(height: AppSizes.small),
-              Text(
-                AppStrings.appName.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: AppTextStyles.pageTitle,
-              ),
-              Text(
-                AppStrings.tagline.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: AppTextStyles.eyebrow,
-              ),
-              const SizedBox(height: 32),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                keyboardType: TextInputType.emailAddress,
-                validator: Validators.email,
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _hidePassword,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  suffixIcon: IconButton(
-                    tooltip: _hidePassword ? 'Show password' : 'Hide password',
-                    icon: Icon(
-                      _hidePassword ? Icons.visibility : Icons.visibility_off,
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          children: [
+            const _Hero(),
+            // On a wide screen the form stays a comfortable width.
+            ResponsiveBody(
+              maxWidth: 440,
+              child: Padding(
+                padding: const EdgeInsets.all(AppSizes.pagePadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: AppSizes.small),
+                    const Text(
+                      'Welcome back',
+                      style: AppTextStyles.sectionTitle,
                     ),
-                    onPressed: () =>
-                        setState(() => _hidePassword = !_hidePassword),
-                  ),
+                    const SizedBox(height: AppSizes.fieldGap),
+                    ..._fields(),
+                  ],
                 ),
-                validator: Validators.password,
-                onFieldSubmitted: (_) => _logIn(),
               ),
-              const SizedBox(height: AppSizes.sectionGap * 1.5),
-              LoadingButton(
-                label: 'Log in',
-                isLoading: _isLoading,
-                onPressed: _logIn,
-              ),
-              const SizedBox(height: AppSizes.small),
-              TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The email and password fields, the Log in button and the Register link.
+  List<Widget> _fields() {
+    return [
+      TextFormField(
+        controller: _emailController,
+        decoration: const InputDecoration(labelText: 'Email'),
+        keyboardType: TextInputType.emailAddress,
+        validator: Validators.email,
+      ),
+      const SizedBox(height: AppSizes.fieldGap),
+      TextFormField(
+        controller: _passwordController,
+        obscureText: _hidePassword,
+        decoration: InputDecoration(
+          labelText: 'Password',
+          suffixIcon: IconButton(
+            tooltip: _hidePassword ? 'Show password' : 'Hide password',
+            icon: Icon(_hidePassword ? Icons.visibility : Icons.visibility_off),
+            onPressed: () => setState(() => _hidePassword = !_hidePassword),
+          ),
+        ),
+        validator: Validators.password,
+        onFieldSubmitted: (_) => _logIn(),
+      ),
+      const SizedBox(height: AppSizes.sectionGap),
+      LoadingButton(label: 'Log in', isLoading: _isLoading, onPressed: _logIn),
+      const SizedBox(height: AppSizes.small),
+      Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          const Text('New to AgosUgnayan?'),
+          TextButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
+            child: const Text('Create an account'),
+          ),
+        ],
+      ),
+    ];
+  }
+}
+
+/// Green banner with the logo, the app name and the tagline (website .hero).
+class _Hero extends StatelessWidget {
+  const _Hero();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: ResponsiveBody(
+          maxWidth: 440,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.pagePadding,
+              28,
+              AppSizes.pagePadding,
+              30,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const AppLogo(size: 52),
+                const SizedBox(height: 12),
+                Text(
+                  AppStrings.appName,
+                  style: AppTextStyles.logo.copyWith(fontSize: 40, height: 0.9),
                 ),
-                child: const Text('No account yet? Register'),
-              ),
-            ],
+                const SizedBox(height: 12),
+                const Text(
+                  AppStrings.tagline,
+                  style: TextStyle(color: Colors.white, fontSize: 15),
+                ),
+              ],
+            ),
           ),
         ),
       ),

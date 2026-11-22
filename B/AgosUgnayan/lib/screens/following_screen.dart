@@ -11,6 +11,9 @@ import '../utils/app_exception.dart';
 import '../utils/snackbars.dart';
 import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
+import '../widgets/crop_thumb.dart';
+import '../widgets/page_header.dart';
+import '../widgets/tab_page.dart';
 import 'farmer_profile_screen.dart';
 import 'listing_detail_screen.dart';
 
@@ -89,44 +92,47 @@ class _FollowingScreenState extends State<FollowingScreen> {
   @override
   Widget build(BuildContext context) {
     final isListings = _type == FollowType.listing;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('FOLLOWING'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: _load,
-            icon: const Icon(Icons.refresh),
+    return TabPage(
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PageHeader(
+            eyebrow: 'Saved for later',
+            title: 'Following',
+            lead: 'Crops and farmers you follow.',
+            trailing: IconButton(
+              tooltip: 'Refresh',
+              onPressed: _load,
+              icon: const Icon(Icons.refresh, color: AppColors.link),
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(
+                  value: FollowType.listing,
+                  label: Text('Crop Listings'),
+                  icon: Icon(Icons.grass),
+                ),
+                ButtonSegment(
+                  value: FollowType.farmer,
+                  label: Text('Farmers'),
+                  icon: Icon(Icons.agriculture),
+                ),
+              ],
+              selected: {_type},
+              onSelectionChanged: (value) {
+                setState(() => _type = value.first);
+                _load();
+              },
+            ),
           ),
         ],
       ),
-      body: Column(
+      child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSizes.pagePadding),
-            child: SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(
-                    value: FollowType.listing,
-                    label: Text('Crop Listings'),
-                    icon: Icon(Icons.grass),
-                  ),
-                  ButtonSegment(
-                    value: FollowType.farmer,
-                    label: Text('Farmers'),
-                    icon: Icon(Icons.agriculture),
-                  ),
-                ],
-                selected: {_type},
-                onSelectionChanged: (value) {
-                  setState(() => _type = value.first);
-                  _load();
-                },
-              ),
-            ),
-          ),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _load,
@@ -141,7 +147,7 @@ class _FollowingScreenState extends State<FollowingScreen> {
                     : 'You are not following any farmers yet.\n'
                           'Tap Follow on a farmer\'s profile.',
                 builder: (context) => ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: TabPage.listPadding,
                   itemCount: _items.length,
                   itemBuilder: (context, index) {
                     final item = _items[index];
@@ -149,15 +155,33 @@ class _FollowingScreenState extends State<FollowingScreen> {
                       margin: const EdgeInsets.only(bottom: AppSizes.small),
                       child: ListTile(
                         onTap: () => _open(item),
-                        leading: CircleAvatar(
-                          backgroundColor: AppColors.primaryLight,
-                          child: Icon(
-                            isListings ? Icons.eco : Icons.person,
-                            color: AppColors.primaryDark,
+                        contentPadding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+                        leading: isListings
+                            ? const CropThumb()
+                            : CircleAvatar(
+                                radius: 23,
+                                backgroundColor: AppColors.primaryLight,
+                                child: Text(
+                                  item.title.isEmpty
+                                      ? '?'
+                                      : item.title[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryDark,
+                                  ),
+                                ),
+                              ),
+                        title: Text(
+                          item.title,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        title: Text(item.title),
-                        subtitle: Text(item.subtitle),
+                        subtitle: Text(
+                          item.subtitle,
+                          style: AppTextStyles.meta,
+                        ),
                         trailing: IconButton(
                           tooltip: 'Unfollow',
                           icon: const Icon(

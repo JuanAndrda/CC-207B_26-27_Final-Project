@@ -16,6 +16,8 @@ import '../widgets/confirm_dialog.dart';
 import '../widgets/date_field.dart';
 import '../widgets/dropdown_field.dart';
 import '../widgets/loading_button.dart';
+import '../widgets/page_header.dart';
+import '../widgets/responsive_body.dart';
 
 /// Form to post a new request, or edit [request] when it is given.
 /// Closes with `true` when something was saved.
@@ -117,7 +119,7 @@ class _RequestFormScreenState extends State<RequestFormScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_isEditing ? 'EDIT REQUEST' : 'POST REQUEST'),
+          title: Text(_isEditing ? 'Edit request' : 'Post a request'),
         ),
         body: Form(
           key: _formKey,
@@ -125,91 +127,100 @@ class _RequestFormScreenState extends State<RequestFormScreen> {
           onChanged: () {
             if (!_hasChanges) setState(() => _hasChanges = true);
           },
-          child: ListView(
-            padding: const EdgeInsets.all(AppSizes.pagePadding),
-            children: [
-              const Text(
-                'Tell farmers what you need. They can message you with offers.',
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              DropdownField(
-                label: 'Crop',
-                items: kCrops,
-                value: _crop,
-                onChanged: (value) => setState(() => _crop = value),
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _quantityController,
-                      decoration: const InputDecoration(labelText: 'Quantity'),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+          child: ResponsiveBody(
+            maxWidth: AppSizes.maxFormWidth,
+            child: ListView(
+              padding: const EdgeInsets.all(AppSizes.pagePadding),
+              children: [
+                PageHeader(
+                  eyebrow: _isEditing ? 'Edit request' : 'New request',
+                  title: 'What do you need?',
+                  lead:
+                      'Farmers see this in Buyer Demand and can message you '
+                      'with offers.',
+                ),
+                const SizedBox(height: AppSizes.sectionGap),
+                DropdownField(
+                  label: 'Crop',
+                  items: kCrops,
+                  value: _crop,
+                  onChanged: (value) => setState(() => _crop = value),
+                ),
+                const SizedBox(height: AppSizes.fieldGap),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _quantityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Quantity',
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: Validators.positiveNumber,
                       ),
-                      validator: Validators.positiveNumber,
                     ),
-                  ),
-                  const SizedBox(width: AppSizes.small),
-                  Expanded(
-                    child: DropdownField(
-                      label: 'Unit',
-                      items: kUnits,
-                      value: _unit,
-                      onChanged: (value) => setState(() => _unit = value),
+                    const SizedBox(width: AppSizes.small),
+                    Expanded(
+                      child: DropdownField(
+                        label: 'Unit',
+                        items: kUnits,
+                        value: _unit,
+                        onChanged: (value) => setState(() => _unit = value),
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: AppSizes.fieldGap),
+                TextFormField(
+                  controller: _targetPriceController,
+                  decoration: InputDecoration(
+                    labelText: 'Target price per ${_unit ?? 'unit'} (optional)',
+                    prefixText: '₱ ',
                   ),
-                ],
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              TextFormField(
-                controller: _targetPriceController,
-                decoration: InputDecoration(
-                  labelText: 'Target price per ${_unit ?? 'unit'} (optional)',
-                  prefixText: '₱ ',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: _validateTargetPrice,
                 ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                const SizedBox(height: AppSizes.fieldGap),
+                DateField(
+                  label: 'Needed by',
+                  value: _neededBy,
+                  firstDate: DateTime.now(),
+                  onChanged: (date) => setState(() {
+                    _neededBy = date;
+                    _hasChanges = true;
+                  }),
                 ),
-                validator: _validateTargetPrice,
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              DateField(
-                label: 'Needed by',
-                value: _neededBy,
-                firstDate: DateTime.now(),
-                onChanged: (date) => setState(() {
-                  _neededBy = date;
-                  _hasChanges = true;
-                }),
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              DropdownField(
-                label: 'Delivery town',
-                items: kTowns,
-                value: _town,
-                onChanged: (value) => setState(() => _town = value),
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              TextFormField(
-                controller: _notesController,
-                decoration: const InputDecoration(
-                  labelText: 'Notes (optional)',
-                  hintText: 'e.g. For a carinderia, weekly order',
+                const SizedBox(height: AppSizes.fieldGap),
+                DropdownField(
+                  label: 'Delivery town',
+                  items: kTowns,
+                  value: _town,
+                  onChanged: (value) => setState(() => _town = value),
                 ),
-                maxLines: 3,
-                maxLength: 300,
-                validator: Validators.maxLength(300),
-              ),
-              const SizedBox(height: AppSizes.sectionGap),
-              LoadingButton(
-                label: _isEditing ? 'Save changes' : 'Post request',
-                isLoading: _isSaving,
-                onPressed: _save,
-              ),
-            ],
+                const SizedBox(height: AppSizes.fieldGap),
+                TextFormField(
+                  controller: _notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes (optional)',
+                    hintText: 'e.g. For a carinderia, weekly order',
+                  ),
+                  maxLines: 3,
+                  maxLength: 300,
+                  validator: Validators.maxLength(300),
+                ),
+                const SizedBox(height: AppSizes.sectionGap),
+                LoadingButton(
+                  label: _isEditing ? 'Save changes' : 'Post request',
+                  isLoading: _isSaving,
+                  onPressed: _save,
+                ),
+              ],
+            ),
           ),
         ),
       ),

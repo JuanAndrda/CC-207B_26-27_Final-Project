@@ -7,7 +7,8 @@ class AppStrings {
 
   // App
   static const String appName = 'AgosUgnayan';
-  static const String tagline = 'Prices · Buyers · Connections';
+  static const String tagline =
+      'Latest crop prices and local buyers in Iloilo Province.';
 
   // Common buttons
   static const String retry = 'Try again';

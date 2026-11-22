@@ -14,6 +14,8 @@ import '../utils/theme.dart';
 import '../utils/validators.dart';
 import '../widgets/dropdown_field.dart';
 import '../widgets/loading_button.dart';
+import '../widgets/page_header.dart';
+import '../widgets/responsive_body.dart';
 
 /// Admin form for one monthly reference price.
 class AdminPriceFormScreen extends StatefulWidget {
@@ -68,58 +70,64 @@ class _AdminPriceFormScreenState extends State<AdminPriceFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ADD PRICE')),
+      appBar: AppBar(title: const Text('Add price')),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(AppSizes.pagePadding),
-          children: [
-            const Text(
-              'Copy the farmgate price per kg from $kPriceSource '
-              '(PSA OpenSTAT).',
-            ),
-            const SizedBox(height: AppSizes.fieldGap),
-            DropdownField(
-              label: 'Crop',
-              items: kCrops,
-              value: _crop,
-              onChanged: (value) => setState(() => _crop = value),
-            ),
-            const SizedBox(height: AppSizes.fieldGap),
-            // Shows "Nov 2026" but saves "2026-11".
-            DropdownButtonFormField<String>(
-              initialValue: _month,
-              decoration: const InputDecoration(labelText: 'Month'),
-              items: [
-                for (final month in _months)
-                  DropdownMenuItem(
-                    value: month,
-                    child: Text(formatMonthKey(month)),
-                  ),
-              ],
-              onChanged: (value) => setState(() => _month = value),
-              validator: (value) =>
-                  value == null ? 'Please choose a month.' : null,
-            ),
-            const SizedBox(height: AppSizes.fieldGap),
-            TextFormField(
-              controller: _priceController,
-              decoration: const InputDecoration(
-                labelText: 'Price per kg',
-                prefixText: '₱ ',
+        child: ResponsiveBody(
+          maxWidth: AppSizes.maxFormWidth,
+          child: ListView(
+            padding: const EdgeInsets.all(AppSizes.pagePadding),
+            children: [
+              const PageHeader(
+                eyebrow: 'Admin',
+                title: 'Add a price',
+                lead:
+                    'Copy the farmgate price per kg from $kPriceSource '
+                    '(PSA OpenSTAT).',
               ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: AppSizes.sectionGap),
+              DropdownField(
+                label: 'Crop',
+                items: kCrops,
+                value: _crop,
+                onChanged: (value) => setState(() => _crop = value),
               ),
-              validator: Validators.price,
-            ),
-            const SizedBox(height: AppSizes.sectionGap),
-            LoadingButton(
-              label: 'Save price',
-              isLoading: _isSaving,
-              onPressed: _save,
-            ),
-          ],
+              const SizedBox(height: AppSizes.fieldGap),
+              // Shows "Nov 2026" but saves "2026-11".
+              DropdownButtonFormField<String>(
+                initialValue: _month,
+                decoration: const InputDecoration(labelText: 'Month'),
+                items: [
+                  for (final month in _months)
+                    DropdownMenuItem(
+                      value: month,
+                      child: Text(formatMonthKey(month)),
+                    ),
+                ],
+                onChanged: (value) => setState(() => _month = value),
+                validator: (value) =>
+                    value == null ? 'Please choose a month.' : null,
+              ),
+              const SizedBox(height: AppSizes.fieldGap),
+              TextFormField(
+                controller: _priceController,
+                decoration: const InputDecoration(
+                  labelText: 'Price per kg',
+                  prefixText: '₱ ',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: Validators.price,
+              ),
+              const SizedBox(height: AppSizes.sectionGap),
+              LoadingButton(
+                label: 'Save price',
+                isLoading: _isSaving,
+                onPressed: _save,
+              ),
+            ],
+          ),
         ),
       ),
     );

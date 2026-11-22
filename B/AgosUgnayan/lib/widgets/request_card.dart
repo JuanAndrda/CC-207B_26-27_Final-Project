@@ -1,13 +1,15 @@
 // A card that shows one buyer request. Used in My Requests (buyer) and
-// Buyer Demand (farmer).
+// Buyer Demand (farmer). Looks like the website's request cards.
 
 import 'package:flutter/material.dart';
 
 import '../models/buyer_request.dart';
 import '../utils/format.dart';
 import '../utils/theme.dart';
+import 'crop_thumb.dart';
+import 'status_badge.dart';
 
-/// Crop, amount, needed-by date, town and an Open/Closed label.
+/// Crop and amount, needed-by date, town, target price and an Open/Closed pill.
 class RequestCard extends StatelessWidget {
   const RequestCard({
     super.key,
@@ -23,36 +25,58 @@ class RequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final amount = '${formatQuantity(request.quantity)} ${request.unit}';
-    final target = request.targetPrice == null
-        ? ''
-        : ' · target ${formatPeso(request.targetPrice!)}/${request.unit}';
     return Card(
-      child: ListTile(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.primaryLight,
-          child: Icon(Icons.assignment, color: AppColors.primaryDark),
-        ),
-        title: Text('${request.crop} · $amount'),
-        subtitle: Text(
-          'Needed by ${formatDate(request.neededBy)} · ${request.town}$target',
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Text, not just color, so the status is clear to everyone.
-            Text(
-              request.isClosed ? 'Closed' : 'Open',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: request.isClosed
-                    ? AppColors.textMuted
-                    : AppColors.primaryDark,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CropThumb(icon: Icons.assignment_outlined),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${request.crop}, $amount',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Needed by ${formatDate(request.neededBy)} · '
+                      '${request.town}',
+                      style: AppTextStyles.meta,
+                    ),
+                    if (request.targetPrice != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Target ${formatPeso(request.targetPrice!)}/${request.unit}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-            // "?" adds trailing only when it is not null.
-            ?trailing,
-          ],
+              const SizedBox(width: AppSizes.small),
+              // Text, not just color, so the status is clear to everyone.
+              StatusBadge(
+                label: request.isClosed ? 'Closed' : 'Open',
+                kind: request.isClosed ? StatusKind.closed : StatusKind.open,
+              ),
+              // "?" adds trailing only when it is not null.
+              ?trailing,
+              if (trailing == null) const SizedBox(width: 8),
+            ],
+          ),
         ),
       ),
     );

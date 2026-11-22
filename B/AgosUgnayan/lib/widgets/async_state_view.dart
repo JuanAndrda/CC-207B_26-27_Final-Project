@@ -57,13 +57,29 @@ class AsyncStateView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
+      // Spinner plus "Loading…", like the website's loading line.
       return const Center(
-        child: CircularProgressIndicator(semanticsLabel: AppStrings.loading),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                semanticsLabel: AppStrings.loading,
+              ),
+            ),
+            SizedBox(width: 10),
+            Text(AppStrings.loading, style: AppTextStyles.lead),
+          ],
+        ),
       );
     }
     if (errorMessage != null) {
       return _Message(
         icon: Icons.cloud_off_outlined,
+        isProblem: true,
         message: errorMessage!,
         action: onRetry == null
             ? null
@@ -85,31 +101,56 @@ class AsyncStateView extends StatelessWidget {
   }
 }
 
-/// Centered icon, message and optional button, used for error and empty.
+/// Centered icon in a circle, message and optional button, used for error
+/// and empty. Errors get a red circle so they don't look like "no data".
 class _Message extends StatelessWidget {
-  const _Message({required this.icon, required this.message, this.action});
+  const _Message({
+    required this.icon,
+    required this.message,
+    this.action,
+    this.isProblem = false,
+  });
 
   final IconData icon;
   final String message;
   final Widget? action;
+  final bool isProblem;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppSizes.pagePadding * 2),
+        padding: const EdgeInsets.all(AppSizes.pagePadding * 1.5),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: AppColors.textMuted),
-            const SizedBox(height: AppSizes.fieldGap),
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isProblem
+                    ? AppColors.dangerLight
+                    : AppColors.primaryLight,
+              ),
+              child: Icon(
+                icon,
+                size: 26,
+                color: isProblem ? AppColors.danger : AppColors.link,
+              ),
+            ),
+            const SizedBox(height: 10),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textMuted,
+                height: 1.4,
+              ),
             ),
             if (action != null) ...[
-              const SizedBox(height: AppSizes.sectionGap),
+              const SizedBox(height: AppSizes.fieldGap),
               action!,
             ],
           ],

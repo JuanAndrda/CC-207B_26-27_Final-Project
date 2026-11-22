@@ -1,11 +1,11 @@
 {
-    "name": "agosugnayan",
-    "short_name": "agosugnayan",
+    "name": "AgosUgnayan",
+    "short_name": "AgosUgnayan",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F5F5F0",
+    "theme_color": "#4A7F2C",
+    "description": "Latest crop prices and local buyers in Iloilo Province.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -21,6 +21,8 @@ import '../widgets/confirm_dialog.dart';
 import '../widgets/date_field.dart';
 import '../widgets/dropdown_field.dart';
 import '../widgets/loading_button.dart';
+import '../widgets/page_header.dart';
+import '../widgets/responsive_body.dart';
 
 /// Form to add a new crop listing, or edit [listing] when it is given.
 /// Closes with `true` when something was saved.
@@ -156,96 +158,111 @@ class _CropFormScreenState extends State<CropFormScreen> {
         if (discard && context.mounted) Navigator.of(context).pop(false);
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(_isEditing ? 'EDIT CROP' : 'ADD CROP')),
+        appBar: AppBar(title: Text(_isEditing ? 'Edit crop' : 'Add crop')),
         body: Form(
           key: _formKey,
           // setState so PopScope knows there are unsaved changes now.
           onChanged: () {
             if (!_hasChanges) setState(() => _hasChanges = true);
           },
-          child: ListView(
-            padding: const EdgeInsets.all(AppSizes.pagePadding),
-            children: [
-              if (!_isEditing) AiAssistantBox(onSuggestion: _applySuggestion),
-              if (_aiUsed)
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: AiGeneratedChip(),
+          child: ResponsiveBody(
+            maxWidth: AppSizes.maxFormWidth,
+            child: ListView(
+              padding: const EdgeInsets.all(AppSizes.pagePadding),
+              children: [
+                PageHeader(
+                  eyebrow: _isEditing ? 'Edit listing' : 'New listing',
+                  title: _isEditing ? 'Edit your crop' : 'Sell a crop',
+                  lead:
+                      'Buyers see this in the Market. Fields marked '
+                      '"optional" can be left empty.',
                 ),
-              const SizedBox(height: AppSizes.fieldGap),
-              DropdownField(
-                label: 'Crop',
-                items: kCrops,
-                value: _crop,
-                onChanged: (value) => setState(() => _crop = value),
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _quantityController,
-                      decoration: const InputDecoration(labelText: 'Quantity'),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      validator: Validators.positiveNumber,
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.small),
-                  Expanded(
-                    child: DropdownField(
-                      label: 'Unit',
-                      items: kUnits,
-                      value: _unit,
-                      onChanged: (value) => setState(() => _unit = value),
-                    ),
+                const SizedBox(height: AppSizes.sectionGap),
+                if (!_isEditing) AiAssistantBox(onSuggestion: _applySuggestion),
+                if (_aiUsed) ...[
+                  const SizedBox(height: 10),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: AiGeneratedChip(),
                   ),
                 ],
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              TextFormField(
-                controller: _priceController,
-                decoration: InputDecoration(
-                  labelText: 'Asking price per ${_unit ?? 'unit'} (₱)',
-                  helperText: _priceHint(),
-                  helperMaxLines: 2,
+                const SizedBox(height: AppSizes.sectionGap),
+                DropdownField(
+                  label: 'Crop',
+                  items: kCrops,
+                  value: _crop,
+                  onChanged: (value) => setState(() => _crop = value),
                 ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                const SizedBox(height: AppSizes.fieldGap),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _quantityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Quantity',
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: Validators.positiveNumber,
+                      ),
+                    ),
+                    const SizedBox(width: AppSizes.small),
+                    Expanded(
+                      child: DropdownField(
+                        label: 'Unit',
+                        items: kUnits,
+                        value: _unit,
+                        onChanged: (value) => setState(() => _unit = value),
+                      ),
+                    ),
+                  ],
                 ),
-                validator: Validators.price,
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              DateField(
-                label: 'Harvest date (optional)',
-                value: _harvestDate,
-                isRequired: false,
-                firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                onChanged: (date) => setState(() {
-                  _harvestDate = date;
-                  _hasChanges = true;
-                }),
-              ),
-              const SizedBox(height: AppSizes.fieldGap),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  hintText: 'e.g. Freshly picked, no pesticide',
+                const SizedBox(height: AppSizes.fieldGap),
+                TextFormField(
+                  controller: _priceController,
+                  decoration: InputDecoration(
+                    labelText: 'Asking price per ${_unit ?? 'unit'} (₱)',
+                    helperText: _priceHint(),
+                    helperMaxLines: 2,
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.price,
                 ),
-                maxLines: 3,
-                maxLength: 300,
-                validator: Validators.maxLength(300),
-              ),
-              const SizedBox(height: AppSizes.sectionGap),
-              LoadingButton(
-                label: _isEditing ? 'Save changes' : 'List this crop',
-                isLoading: _isSaving,
-                onPressed: _save,
-              ),
-            ],
+                const SizedBox(height: AppSizes.fieldGap),
+                DateField(
+                  label: 'Harvest date (optional)',
+                  value: _harvestDate,
+                  isRequired: false,
+                  firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                  onChanged: (date) => setState(() {
+                    _harvestDate = date;
+                    _hasChanges = true;
+                  }),
+                ),
+                const SizedBox(height: AppSizes.fieldGap),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (optional)',
+                    hintText: 'e.g. Freshly picked, no pesticide',
+                  ),
+                  maxLines: 3,
+                  maxLength: 300,
+                  validator: Validators.maxLength(300),
+                ),
+                const SizedBox(height: AppSizes.sectionGap),
+                LoadingButton(
+                  label: _isEditing ? 'Save changes' : 'List this crop',
+                  isLoading: _isSaving,
+                  onPressed: _save,
+                ),
+              ],
+            ),
           ),
         ),
       ),

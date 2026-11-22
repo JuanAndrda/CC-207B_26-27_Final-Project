@@ -25,6 +25,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # The AgosUgnayan logo, the same file the website uses.
+  assets:
+    - assets/images/logo.png
+
   # Fonts from the Figma design (Google Fonts, SIL Open Font License).
   # The family names must match AppFonts in lib/utils/theme.dart.
   fonts:

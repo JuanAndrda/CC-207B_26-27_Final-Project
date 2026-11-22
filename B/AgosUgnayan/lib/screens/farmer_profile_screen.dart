@@ -14,6 +14,8 @@ import '../widgets/async_state_view.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/listing_card.dart';
 import '../widgets/message_button.dart';
+import '../widgets/page_header.dart';
+import '../widgets/responsive_body.dart';
 import 'listing_detail_screen.dart';
 
 /// Loads and shows the farmer with id [farmerId].
@@ -63,7 +65,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('FARMER')),
+      appBar: AppBar(title: const Text('Farmer')),
       body: AsyncStateView(
         isLoading: _isLoading,
         errorMessage: _error,
@@ -77,56 +79,78 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
 
   Widget _buildProfile(AppUser farmer) {
     final isBuyer = AuthService.currentUser!.isBuyer;
-    return ListView(
-      padding: const EdgeInsets.all(AppSizes.pagePadding),
-      children: [
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: CircleAvatar(
-            radius: 28,
-            backgroundColor: AppColors.primaryLight,
-            child: Text(farmer.name[0].toUpperCase()),
+    return ResponsiveBody(
+      maxWidth: AppSizes.maxFormWidth,
+      child: ListView(
+        padding: const EdgeInsets.all(AppSizes.pagePadding),
+        children: [
+          // Big avatar with the first letter, then name and town.
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: AppColors.primaryLight,
+                child: Text(
+                  farmer.name[0].toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: PageHeader(
+                  eyebrow: 'Farmer',
+                  title: farmer.name,
+                  lead: '${farmer.town}, Iloilo',
+                ),
+              ),
+            ],
           ),
-          title: Text(farmer.name, style: AppTextStyles.pageTitle),
-          subtitle: Text('Farmer · ${farmer.town}, Iloilo'),
-        ),
-        if (farmer.about.isNotEmpty) Text(farmer.about),
-        const SizedBox(height: AppSizes.fieldGap),
-        if (isBuyer) ...[
-          MessageButton(
-            otherId: farmer.id,
-            otherName: farmer.name,
-            label: 'Message ${farmer.name}',
-          ),
+          if (farmer.about.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(farmer.about, style: const TextStyle(fontSize: 15)),
+          ],
+          const SizedBox(height: AppSizes.fieldGap),
+          if (isBuyer) ...[
+            MessageButton(
+              otherId: farmer.id,
+              otherName: farmer.name,
+              label: 'Message ${farmer.name}',
+            ),
+            const SizedBox(height: AppSizes.small),
+            FollowButton(
+              targetId: farmer.id,
+              type: FollowType.farmer,
+              title: farmer.name,
+              subtitle: 'Farmer · ${farmer.town}',
+            ),
+          ],
+          const SizedBox(height: AppSizes.sectionGap),
+          SectionTitle('Crops for sale (${_listings.length})'),
           const SizedBox(height: AppSizes.small),
-          FollowButton(
-            targetId: farmer.id,
-            type: FollowType.farmer,
-            title: farmer.name,
-            subtitle: 'Farmer · ${farmer.town}',
-          ),
-        ],
-        const SizedBox(height: AppSizes.sectionGap),
-        Text(
-          'CROPS FOR SALE (${_listings.length})',
-          style: AppTextStyles.eyebrow,
-        ),
-        const SizedBox(height: AppSizes.small),
-        if (_listings.isEmpty) const Text('No crops for sale right now.'),
-        for (final listing in _listings)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSizes.small),
-            child: ListingCard(
-              listing: listing,
-              showFarmer: false,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ListingDetailScreen(listing: listing),
+          if (_listings.isEmpty)
+            const Text(
+              'No crops for sale right now.',
+              style: AppTextStyles.lead,
+            ),
+          for (final listing in _listings)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSizes.small),
+              child: ListingCard(
+                listing: listing,
+                showFarmer: false,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ListingDetailScreen(listing: listing),
+                  ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

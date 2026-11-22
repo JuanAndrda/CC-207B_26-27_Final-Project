@@ -14,6 +14,8 @@ import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/listing_card.dart';
+import '../widgets/page_header.dart';
+import '../widgets/tab_page.dart';
 import 'crop_form_screen.dart';
 import 'listing_detail_screen.dart';
 
@@ -92,14 +94,19 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('MY CROPS')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openForm(),
-        icon: const Icon(Icons.add),
-        label: const Text('Add crop'),
+    final user = AuthService.currentUser!;
+    return TabPage(
+      header: PageHeader(
+        eyebrow: '${user.town}, Iloilo',
+        title: 'My crops',
+        lead: 'What you are selling. Buyers see these in the Market.',
+        trailing: FilledButton.icon(
+          onPressed: () => _openForm(),
+          icon: const Icon(Icons.add),
+          label: const Text('Add crop'),
+        ),
       ),
-      body: RefreshIndicator(
+      child: RefreshIndicator(
         onRefresh: _load,
         child: AsyncStateView(
           isLoading: _isLoading,
@@ -108,7 +115,7 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
           isEmpty: _listings.isEmpty,
           emptyMessage: 'No crops listed yet.\nTap "Add crop" to sell one.',
           builder: (context) => ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            padding: TabPage.listPadding,
             itemCount: _listings.length,
             separatorBuilder: (_, _) => const SizedBox(height: AppSizes.small),
             itemBuilder: (context, index) {

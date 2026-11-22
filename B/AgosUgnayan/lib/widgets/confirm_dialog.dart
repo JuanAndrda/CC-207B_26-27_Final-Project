@@ -1,14 +1,14 @@
-// A reusable confirmation dialog for destructive actions such as delete,
-// log out or discarding a form. Buttons say what they do ("Delete"), not
-// "Yes" / "No".
+// A reusable confirmation for destructive actions such as delete, log out or
+// discarding a form. It slides up from the bottom (a bottom sheet), like the
+// website. Buttons say what they do ("Delete"), not "Yes" / "No".
 
 import 'package:flutter/material.dart';
 
 import '../utils/strings.dart';
 import '../utils/theme.dart';
 
-/// Shows a confirmation dialog and returns true only if the user tapped the
-/// confirm button. Tapping Cancel or outside the dialog returns false.
+/// Shows a confirmation sheet and returns true only if the user tapped the
+/// confirm button. Tapping Cancel or outside the sheet returns false.
 ///
 /// Example:
 /// ```dart
@@ -28,29 +28,55 @@ Future<bool> showConfirmDialog(
   String cancelLabel = AppStrings.cancel,
   bool isDestructive = true,
 }) async {
-  final result = await showDialog<bool>(
+  // A sheet that slides up from the bottom, like the website's confirm sheet.
+  final result = await showModalBottomSheet<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: Text(title),
-      content: Text(message),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: Text(cancelLabel),
+    isScrollControlled: true,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(message, style: AppTextStyles.lead),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, AppSizes.minTapTarget),
+                    ),
+                    child: Text(cancelLabel),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: isDestructive
+                          ? AppColors.danger
+                          : AppColors.primary,
+                    ),
+                    child: Text(confirmLabel),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          style: TextButton.styleFrom(
-            foregroundColor: isDestructive
-                ? AppColors.danger
-                : AppColors.primaryDark,
-          ),
-          child: Text(confirmLabel),
-        ),
-      ],
+      ),
     ),
   );
-  // showDialog returns null when the user taps outside, so treat it as Cancel.
+  // The sheet returns null when the user taps outside, so treat it as Cancel.
   return result ?? false;
 }
 

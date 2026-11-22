@@ -10,6 +10,8 @@ import '../utils/format.dart';
 import '../utils/strings.dart';
 import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
+import '../widgets/page_header.dart';
+import '../widgets/tab_page.dart';
 import 'chat_screen.dart';
 
 /// Inbox tab for farmers and buyers.
@@ -38,9 +40,15 @@ class _InboxScreenState extends State<InboxScreen> {
   @override
   Widget build(BuildContext context) {
     final isFarmer = AuthService.currentUser!.isFarmer;
-    return Scaffold(
-      appBar: AppBar(title: const Text('MESSAGES')),
-      body: StreamBuilder<List<Chat>>(
+    return TabPage(
+      header: PageHeader(
+        eyebrow: 'Inbox',
+        title: 'Messages',
+        lead: isFarmer
+            ? 'Chats with buyers about your crops.'
+            : 'Chats with farmers about their crops.',
+      ),
+      child: StreamBuilder<List<Chat>>(
         stream: _chats,
         builder: (context, snapshot) {
           final chats = snapshot.data ?? [];
@@ -53,39 +61,60 @@ class _InboxScreenState extends State<InboxScreen> {
                 ? 'No messages yet.\nBuyers who message you show up here.'
                 : 'No messages yet.\nOpen a crop in the Market and tap '
                       '"Message farmer".',
-            builder: (context) => ListView.separated(
-              itemCount: chats.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final chat = chats[index];
-                final otherName = chat.otherUserName(_myId);
-                return ListTile(
-                  tileColor: AppColors.surface,
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.primaryLight,
-                    child: Text(otherName[0].toUpperCase()),
+            // All chats in one white box with lines between them.
+            builder: (context) => ListView(
+              padding: TabPage.listPadding,
+              children: [
+                Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < chats.length; i++) ...[
+                        if (i > 0) const Divider(),
+                        _buildRow(chats[i]),
+                      ],
+                    ],
                   ),
-                  title: Text(otherName),
-                  subtitle: Text(
-                    chat.lastMessage,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: Text(
-                    formatDate(chat.lastMessageAt),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          ChatScreen(chatId: chat.id, otherName: otherName),
-                    ),
-                  ),
-                );
-              },
+                ),
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// One chat: avatar, name, last message and date.
+  Widget _buildRow(Chat chat) {
+    final otherName = chat.otherUserName(_myId);
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      leading: CircleAvatar(
+        radius: 23,
+        backgroundColor: AppColors.primaryLight,
+        child: Text(
+          otherName[0].toUpperCase(),
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColors.primaryDark,
+          ),
+        ),
+      ),
+      title: Text(
+        otherName,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        chat.lastMessage,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: AppColors.textMuted),
+      ),
+      trailing: Text(formatDate(chat.lastMessageAt), style: AppTextStyles.meta),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(chatId: chat.id, otherName: otherName),
+        ),
       ),
     );
   }

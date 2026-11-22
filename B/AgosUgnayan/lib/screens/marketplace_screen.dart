@@ -13,7 +13,10 @@ import '../utils/app_exception.dart';
 import '../utils/constants.dart';
 import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
+import '../widgets/chip_filter_row.dart';
 import '../widgets/listing_card.dart';
+import '../widgets/page_header.dart';
+import '../widgets/tab_page.dart';
 import 'listing_detail_screen.dart';
 
 /// The buyer's Market tab.
@@ -122,39 +125,75 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   @override
   Widget build(BuildContext context) {
     final visible = _visibleListings;
-    return Scaffold(
-      appBar: AppBar(title: const Text('MARKETPLACE')),
-      body: Column(
+    return TabPage(
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildFilters(),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadFirstPage,
-              child: AsyncStateView(
-                isLoading: _isLoading,
-                errorMessage: _error,
-                onRetry: _loadFirstPage,
-                isEmpty: visible.isEmpty,
-                emptyMessage: _search.isNotEmpty
-                    ? 'No results for "$_search".'
-                    : 'No crops for sale with these filters yet.',
-                builder: (context) => ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(AppSizes.pagePadding),
-                  // One extra row at the end for the "loading more" spinner.
-                  itemCount: visible.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == visible.length) return _buildListEnd();
+          const PageHeader(
+            eyebrow: 'Fresh from Iloilo farms',
+            title: 'Market',
+            lead: 'Crops for sale near you. Tap one to see details.',
+          ),
+          const SizedBox(height: 14),
+          _buildSearchRow(),
+          const SizedBox(height: 10),
+          ChipFilterRow(
+            options: kCrops,
+            selected: _crop,
+            onSelected: (crop) {
+              setState(() => _crop = crop);
+              _loadFirstPage();
+            },
+          ),
+        ],
+      ),
+      child: RefreshIndicator(
+        onRefresh: _loadFirstPage,
+        child: AsyncStateView(
+          isLoading: _isLoading,
+          errorMessage: _error,
+          onRetry: _loadFirstPage,
+          isEmpty: visible.isEmpty,
+          emptyMessage: _search.isNotEmpty
+              ? 'No results for "$_search".'
+              : 'No crops for sale with these filters yet.',
+          builder: (context) => _buildGrid(visible),
+        ),
+      ),
+    );
+  }
+
+  /// Crop cards in a grid: 2 columns on a phone, more on a wide screen.
+  Widget _buildGrid(List<Listing> visible) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth - AppSizes.pagePadding * 2;
+        final columns = (width / 220).floor().clamp(2, 4);
+        final tileWidth = (width - 12 * (columns - 1)) / columns;
+        return CustomScrollView(
+          controller: _scrollController,
+          // Lets pull-to-refresh work even when the grid is short.
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverPadding(
+              padding: TabPage.listPadding.copyWith(bottom: 0),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  // Photo area (16:10) plus room for the text below it.
+                  mainAxisExtent: tileWidth * 10 / 16 + 112,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  childCount: visible.length,
+                  (context, index) {
                     final listing = visible[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: AppSizes.small),
-                      child: ListingCard(
-                        listing: listing,
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                ListingDetailScreen(listing: listing),
-                          ),
+                    return ListingGridCard(
+                      listing: listing,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ListingDetailScreen(listing: listing),
                         ),
                       ),
                     );
@@ -162,68 +201,50 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+            SliverToBoxAdapter(child: _buildListEnd()),
+          ],
+        );
+      },
     );
   }
 
-  /// Search box, town dropdown and crop chips.
-  Widget _buildFilters() {
-    return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  onChanged: _onSearchChanged,
-                  decoration: const InputDecoration(
-                    hintText: 'Search crop, farmer, town…',
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSizes.small),
-              DropdownButton<String?>(
-                value: _town,
-                hint: const Text('All towns'),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('All towns')),
-                  for (final town in kTowns)
-                    DropdownMenuItem(value: town, child: Text(town)),
-                ],
-                onChanged: (town) {
-                  setState(() => _town = town);
-                  _loadFirstPage();
-                },
-              ),
-            ],
-          ),
-          SizedBox(
-            height: 52,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                for (final crop in [null, ...kCrops])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: ChoiceChip(
-                      label: Text(crop ?? 'All crops'),
-                      selected: _crop == crop,
-                      onSelected: (_) {
-                        setState(() => _crop = crop);
-                        _loadFirstPage();
-                      },
-                    ),
-                  ),
-              ],
+  /// Search box and the town picker side by side.
+  Widget _buildSearchRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            onChanged: _onSearchChanged,
+            decoration: const InputDecoration(
+              hintText: 'Search crop, farmer, town…',
+              prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: AppSizes.small),
+        SizedBox(
+          width: 150,
+          child: DropdownButtonFormField<String?>(
+            initialValue: _town,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(
+                Icons.place_outlined,
+                color: AppColors.textMuted,
+              ),
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('All towns')),
+              for (final town in kTowns)
+                DropdownMenuItem(value: town, child: Text(town)),
+            ],
+            onChanged: (town) {
+              setState(() => _town = town);
+              _loadFirstPage();
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -238,7 +259,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     if (!_hasMore) {
       return const Padding(
         padding: EdgeInsets.all(16),
-        child: Center(child: Text("That's all the crops for now.")),
+        child: Center(
+          child: Text(
+            "That's all the crops for now.",
+            style: AppTextStyles.meta,
+          ),
+        ),
       );
     }
     return const SizedBox(height: 48);

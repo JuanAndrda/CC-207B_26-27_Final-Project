@@ -12,6 +12,11 @@ import '../utils/constants.dart';
 import '../utils/format.dart';
 import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
+import '../widgets/crop_thumb.dart';
+import '../widgets/listing_card.dart';
+import '../widgets/notice_box.dart';
+import '../widgets/page_header.dart';
+import '../widgets/tab_page.dart';
 import 'admin_price_form_screen.dart';
 import 'price_detail_screen.dart';
 
@@ -64,16 +69,22 @@ class _PriceListScreenState extends State<PriceListScreen> {
         .toList();
     final isAdmin = AuthService.currentUser?.isAdmin ?? false;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('MARKET PRICES')),
-      floatingActionButton: isAdmin
-          ? FloatingActionButton.extended(
-              onPressed: _openAdminForm,
-              icon: const Icon(Icons.add),
-              label: const Text('Add price'),
-            )
-          : null,
-      body: RefreshIndicator(
+    return TabPage(
+      header: PageHeader(
+        eyebrow: 'Farmgate prices',
+        title: 'Market prices',
+        lead:
+            'Monthly averages per kg from $kPriceSource. '
+            'A guide, not live prices.',
+        trailing: isAdmin
+            ? FilledButton.icon(
+                onPressed: _openAdminForm,
+                icon: const Icon(Icons.add),
+                label: const Text('Add price'),
+              )
+            : null,
+      ),
+      child: RefreshIndicator(
         onRefresh: _load,
         child: AsyncStateView(
           isLoading: _isLoading,
@@ -84,16 +95,24 @@ class _PriceListScreenState extends State<PriceListScreen> {
               ? 'No prices yet. Tap "Add price" to enter this month\'s prices.'
               : 'No reference prices yet. Please check again later.',
           builder: (context) => ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            padding: TabPage.listPadding,
             children: [
-              const Text(
-                'Reference farmgate prices per kg. Source: $kPriceSource. '
-                'These are monthly averages, not live prices.',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              if (_data?.savedCopyFrom != null) ...[
+                _buildOfflineNote(),
+                const SizedBox(height: 12),
+              ],
+              // One white box with a row per crop (website .list).
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    for (var i = 0; i < crops.length; i++) ...[
+                      if (i > 0) const Divider(),
+                      _buildRow(crops[i], records),
+                    ],
+                  ],
+                ),
               ),
-              if (_data?.savedCopyFrom != null) _buildOfflineNote(),
-              const SizedBox(height: AppSizes.small),
-              for (final crop in crops) _buildRow(crop, records),
             ],
           ),
         ),
@@ -103,16 +122,18 @@ class _PriceListScreenState extends State<PriceListScreen> {
 
   /// Shown when there was no internet and we use the saved copy.
   Widget _buildOfflineNote() {
-    return Card(
-      color: AppColors.dangerLight,
-      margin: const EdgeInsets.only(top: AppSizes.small),
-      child: ListTile(
-        leading: const Icon(Icons.cloud_off, color: AppColors.danger),
-        title: Text(
-          'Offline: showing prices saved on ${formatDate(_data!.savedCopyFrom!)}.',
+    return Row(
+      children: [
+        Expanded(
+          child: NoticeBox(
+            kind: NoticeKind.warning,
+            message:
+                'Offline: showing prices saved on '
+                '${formatDate(_data!.savedCopyFrom!)}.',
+          ),
         ),
-        trailing: TextButton(onPressed: _load, child: const Text('Retry')),
-      ),
+        TextButton(onPressed: _load, child: const Text('Retry')),
+      ],
     );
   }
 
@@ -127,30 +148,60 @@ class _PriceListScreenState extends State<PriceListScreen> {
         : change == 0
         ? 'No change'
         : '${change > 0 ? '▲' : '▼'} ${formatPeso(change.abs())}';
+    // Green when the price went up, red (with ▼) when it went down.
+    final changeColor = previous == null || change == 0
+        ? AppColors.textMuted
+        : change > 0
+        ? AppColors.primaryDark
+        : AppColors.danger;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSizes.small),
-      child: ListTile(
-        title: Text(crop, style: Theme.of(context).textTheme.titleMedium),
-        subtitle: Text(formatMonthKey(latest.month)),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+    return InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PriceDetailScreen(crop: crop, history: history),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
           children: [
-            Text(
-              '${formatPeso(latest.price)}/kg',
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                color: AppColors.primaryDark,
+            const CropThumb(),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    crop,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '$kPriceSource · ${formatMonthKey(latest.month)}',
+                    style: AppTextStyles.meta,
+                  ),
+                ],
               ),
             ),
-            Text(changeText, style: Theme.of(context).textTheme.bodySmall),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                PriceText(price: latest.price, unit: 'kg'),
+                Text(
+                  changeText,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: changeColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, color: AppColors.textMuted),
           ],
-        ),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => PriceDetailScreen(crop: crop, history: history),
-          ),
         ),
       ),
     );

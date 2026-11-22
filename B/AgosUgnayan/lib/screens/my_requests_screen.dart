@@ -12,6 +12,8 @@ import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/request_card.dart';
+import '../widgets/page_header.dart';
+import '../widgets/tab_page.dart';
 import 'request_detail_screen.dart';
 import 'request_form_screen.dart';
 
@@ -83,14 +85,18 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('MY REQUESTS')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openForm(),
-        icon: const Icon(Icons.add),
-        label: const Text('Post request'),
+    return TabPage(
+      header: PageHeader(
+        eyebrow: 'What you need',
+        title: 'My requests',
+        lead: 'Farmers see these in Buyer Demand and can message you.',
+        trailing: FilledButton.icon(
+          onPressed: () => _openForm(),
+          icon: const Icon(Icons.add),
+          label: const Text('Post request'),
+        ),
       ),
-      body: RefreshIndicator(
+      child: RefreshIndicator(
         onRefresh: _load,
         child: AsyncStateView(
           isLoading: _isLoading,
@@ -101,7 +107,7 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
               'No requests yet.\nTap "Post request" to tell farmers what '
               'you need.',
           builder: (context) => ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            padding: TabPage.listPadding,
             itemCount: _requests.length,
             itemBuilder: (context, index) {
               final request = _requests[index];

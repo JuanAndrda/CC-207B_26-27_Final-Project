@@ -10,6 +10,7 @@ import '../services/ai_service.dart';
 import '../utils/app_exception.dart';
 import '../utils/strings.dart';
 import '../utils/theme.dart';
+import 'notice_box.dart';
 
 /// Note field + button that asks the AI to fill in the crop form.
 class AiAssistantBox extends StatefulWidget {
@@ -60,6 +61,10 @@ class _AiAssistantBoxState extends State<AiAssistantBox> {
   Widget build(BuildContext context) {
     return Card(
       color: AppColors.primaryLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(AppSizes.radiusCard)),
+        side: BorderSide(color: Color(0x334A7F2C)), // brand green, 20%
+      ),
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.pagePadding),
         child: Column(
@@ -93,18 +98,21 @@ class _AiAssistantBoxState extends State<AiAssistantBox> {
             ),
             if (_error != null) ...[
               const SizedBox(height: AppSizes.small),
-              Text(_error!, style: const TextStyle(color: AppColors.danger)),
+              NoticeBox(message: _error!, kind: NoticeKind.error),
             ],
-            const SizedBox(height: AppSizes.small),
+            const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
+              child: FilledButton.icon(
                 onPressed: _isLoading ? null : _askAi,
                 icon: _isLoading
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.auto_awesome),
                 label: Text(
@@ -125,10 +133,28 @@ class AiGeneratedChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Chip(
-      avatar: Icon(Icons.auto_awesome, size: 16),
-      label: Text(AppStrings.aiGenerated),
-      visualDensity: VisualDensity.compact,
+    // A blue pill, so AI content stands out from the green app colors.
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.infoLight,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_awesome, size: 14, color: AppColors.info),
+          SizedBox(width: 5),
+          Text(
+            AppStrings.aiGenerated,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.info,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

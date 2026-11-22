@@ -86,17 +86,9 @@ class AgosUgnayanApp extends StatelessWidget {
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
+      // The app fills the whole window. Each screen limits its own content
+      // width on big screens (see widgets/responsive_body.dart).
       home: StartScreen(firebaseReady: firebaseReady),
-      // On web, keep the phone-sized layout centered on wide screens.
-      builder: (context, child) => ColoredBox(
-        color: AppColors.border,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: child,
-          ),
-        ),
-      ),
     );
   }
 }
