@@ -26,17 +26,21 @@ class StatusBadge extends StatelessWidget {
     return Container(
       height: 28,
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: foreground,
+      // widthFactor: 1 makes the pill only as wide as its text. Without it
+      // the pill stretches across the screen when it has room to grow.
+      child: Center(
+        widthFactor: 1,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: foreground,
+          ),
         ),
       ),
     );
