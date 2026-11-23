@@ -35,6 +35,8 @@
   - Trends only use the 12 months of PSA prices we have and do not predict prices.
   - It doesn't work in the emulator unless built with `FAKE_AI=true`.
 
+- **Gemini free tier per model**: the farmer features (Fill in for me, Generate crop description) use `gemini-3.5-flash`. Its free tier allows only **20 requests per day for the whole project**. During a class demo they may answer "busy"; the forms keep working by hand. The buyer assistant uses `gemini-3.5-flash-lite`, which has its own free quota and answers faster. Moving the farmer features to Lite too would need a re-test of their outputs.
+
 ## Free-tier limits that matter
 
 We only use free services. A class-sized test stays far below these limits, but they are good to know:
