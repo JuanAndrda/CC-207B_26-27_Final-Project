@@ -17,16 +17,26 @@ import 'crop_thumb.dart';
 import 'status_badge.dart';
 
 /// The status label of an order, in words a farmer or buyer understands.
+/// It is written from the viewer's side: what waits for me says "Needs your
+/// answer", what waits for the other person says who we wait for.
 class OrderStateBadge extends StatelessWidget {
-  const OrderStateBadge({super.key, required this.state});
+  const OrderStateBadge({
+    super.key,
+    required this.state,
+    required this.isFarmer,
+  });
 
   final OrderState state;
+  final bool isFarmer;
 
   @override
   Widget build(BuildContext context) {
+    const yourTurn = ('Needs your answer', StatusKind.expired);
     final (label, kind) = switch (state) {
-      OrderState.pending => ('Waiting for farmer', StatusKind.answered),
-      OrderState.offered => ('Waiting for buyer', StatusKind.answered),
+      OrderState.pending =>
+        isFarmer ? yourTurn : ('Waiting for farmer', StatusKind.answered),
+      OrderState.offered =>
+        isFarmer ? ('Waiting for buyer', StatusKind.answered) : yourTurn,
       OrderState.reserved => ('Reserved', StatusKind.open),
       OrderState.holdEnded => ('Reservation ended', StatusKind.expired),
       OrderState.completed => ('Sold', StatusKind.open),
@@ -100,7 +110,7 @@ class OrderCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSizes.small),
-                OrderStateBadge(state: state),
+                OrderStateBadge(state: state, isFarmer: _isFarmer),
               ],
             ),
             const SizedBox(height: 8),
@@ -185,7 +195,11 @@ class _SourceChip extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            private ? 'Private offer' : 'Marketplace',
+            !private
+                ? 'Marketplace'
+                : order.usesListing
+                ? 'Private offer · from listing'
+                : 'Private offer',
             style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
         ],

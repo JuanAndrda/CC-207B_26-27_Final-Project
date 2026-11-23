@@ -14,6 +14,7 @@ import '../utils/format.dart';
 import '../utils/snackbars.dart';
 import '../utils/strings.dart';
 import '../utils/theme.dart';
+import '../widgets/offer_sheet.dart';
 import '../widgets/order_card.dart';
 import '../widgets/responsive_body.dart';
 import '../widgets/async_state_view.dart';
@@ -211,7 +212,25 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// The other person's id. A chat id is both user ids, sorted and joined
+  /// with "_" (see MessageService.chatIdFor), so we remove ours.
+  String get _otherId => widget.chatId
+      .split('_')
+      .firstWhere((id) => id != _myId, orElse: () => '');
+
+  /// Farmers can offer a crop right in the chat, even one that is not in
+  /// the Market.
+  Future<void> _sendOffer() async {
+    await showOfferSheet(
+      context,
+      chatId: widget.chatId,
+      buyerId: _otherId,
+      buyerName: widget.otherName,
+    );
+  }
+
   Widget _buildInputBar() {
+    final isFarmer = AuthService.currentUser?.isFarmer ?? false;
     return SafeArea(
       child: Container(
         // White bar with a thin line on top (website .composer).
@@ -228,6 +247,20 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            if (isFarmer) ...[
+              Tooltip(
+                message: 'Send an offer for a crop',
+                child: SizedBox(
+                  height: AppSizes.minTapTarget,
+                  child: OutlinedButton.icon(
+                    onPressed: _otherId.isEmpty ? null : _sendOffer,
+                    icon: const Icon(Icons.local_offer_outlined, size: 18),
+                    label: const Text('Offer'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSizes.small),
+            ],
             Expanded(
               child: TextField(
                 controller: _textController,

@@ -337,20 +337,34 @@ class StatusTabs<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: SegmentedButton<T>(
-        showSelectedIcon: false,
-        segments: [
-          for (final entry in labels.entries)
-            ButtonSegment(
-              value: entry.key,
-              label: Text('${entry.value} (${counts[entry.key] ?? 0})'),
-            ),
-        ],
-        selected: {value},
-        onSelectionChanged: (selection) => onChanged(selection.first),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Many tabs on a narrow phone: one smaller size for all of them,
+        // so "Waiting (2)" stays on one line and the tabs look the same.
+        final compact = constraints.maxWidth / labels.length < 100;
+        return SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<T>(
+            showSelectedIcon: false,
+            segments: [
+              for (final entry in labels.entries)
+                ButtonSegment(
+                  value: entry.key,
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${entry.value} (${counts[entry.key] ?? 0})',
+                      maxLines: 1,
+                      style: compact ? const TextStyle(fontSize: 12) : null,
+                    ),
+                  ),
+                ),
+            ],
+            selected: {value},
+            onSelectionChanged: (selection) => onChanged(selection.first),
+          ),
+        );
+      },
     );
   }
 }
