@@ -153,6 +153,8 @@ class AssistantController extends ChangeNotifier {
     limits.started(now, usesAi: useAi);
     notice = null;
     isThinking = true;
+    // The chat so far (before this question), for follow-ups.
+    final history = List<AssistantMessage>.of(messages);
     messages.add(AssistantMessage.fromBuyer(text));
     notifyListeners();
     try {
@@ -161,6 +163,7 @@ class AssistantController extends ChangeNotifier {
         currentPage,
         intent ?? detectIntent(text, currentPage),
         useAi: useAi,
+        history: history,
       );
       messages.add(reply);
     } catch (_) {
@@ -176,69 +179,6 @@ class AssistantController extends ChangeNotifier {
       notifyListeners();
     }
   }
-}
-
-/// The question chips for [page]: they change with the screen.
-List<SuggestedQuestion> suggestionsFor(AssistantPage page) {
-  const howRequest = SuggestedQuestion(
-    'How do I request a crop?',
-    AssistantIntent.howTo,
-  );
-  final crop = page.pageCrop?.toLowerCase();
-  return switch (page.screen) {
-    AssistantScreen.market => const [
-      SuggestedQuestion('Find the cheapest tomato', AssistantIntent.search),
-      SuggestedQuestion('What is available near me?', AssistantIntent.search),
-      howRequest,
-    ],
-    AssistantScreen.prices => const [
-      SuggestedQuestion('Explain PSA farmgate prices', AssistantIntent.howTo),
-      SuggestedQuestion('Find the cheapest pechay', AssistantIntent.search),
-    ],
-    AssistantScreen.priceDetail => [
-      SuggestedQuestion('Is this price going up?', AssistantIntent.trend),
-      SuggestedQuestion('Explain this price', AssistantIntent.priceCheck),
-      if (crop != null)
-        SuggestedQuestion('Find $crop for sale', AssistantIntent.search),
-    ],
-    AssistantScreen.listing => const [
-      SuggestedQuestion('Is this price fair?', AssistantIntent.priceCheck),
-      SuggestedQuestion('How much for 5 kg?', AssistantIntent.offerMath),
-      SuggestedQuestion('How do I buy this?', AssistantIntent.howTo),
-    ],
-    AssistantScreen.chat =>
-      page.order == null
-          ? const [
-              SuggestedQuestion(
-                'What does Reserved mean?',
-                AssistantIntent.howTo,
-              ),
-              howRequest,
-            ]
-          : const [
-              SuggestedQuestion(
-                'What does this offer total?',
-                AssistantIntent.offerMath,
-              ),
-              SuggestedQuestion(
-                'What does this status mean?',
-                AssistantIntent.orderStatus,
-              ),
-              SuggestedQuestion(
-                'Is this price fair?',
-                AssistantIntent.priceCheck,
-              ),
-            ],
-    AssistantScreen.orders || AssistantScreen.messages => const [
-      SuggestedQuestion('What does Reserved mean?', AssistantIntent.howTo),
-      SuggestedQuestion('Why did my request expire?', AssistantIntent.howTo),
-    ],
-    _ => const [
-      howRequest,
-      SuggestedQuestion('Find the cheapest tomato', AssistantIntent.search),
-      SuggestedQuestion('What are PSA prices?', AssistantIntent.howTo),
-    ],
-  };
 }
 
 /// Tells the assistant what page this is while [child] is shown. Wrap a

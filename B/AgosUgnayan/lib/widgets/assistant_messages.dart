@@ -45,7 +45,15 @@ class AssistantMessageView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Label(isFallback: message.isFallback),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              _Label(isFallback: message.isFallback, fromApp: message.fromApp),
+              // General knowledge is marked, so nobody takes it for app data.
+              if (message.isGeneral) const _GeneralTag(),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(message.text, style: const TextStyle(fontSize: 14)),
           if (message.facts.isNotEmpty) ...[
@@ -54,6 +62,28 @@ class AssistantMessageView extends StatelessWidget {
           ],
           for (final listing in message.listings)
             _ListingResult(listing: listing, controller: controller),
+          // "Try asking:" chips after "I can't help with that".
+          if (message.suggestions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final chip in message.suggestions)
+                    ActionChip(
+                      label: Text(
+                        chip.text,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      onPressed: controller.isThinking
+                          ? null
+                          : () =>
+                                controller.ask(chip.text, intent: chip.intent),
+                    ),
+                ],
+              ),
+            ),
           if (message.marketCrop != null)
             TextButton.icon(
               onPressed: () => controller.openTab(HomeTab.market),
@@ -66,14 +96,33 @@ class AssistantMessageView extends StatelessWidget {
   }
 }
 
-/// "AI suggestion", or "Facts only (no AI)" when the AI was not used.
+/// "AI suggestion"; "From AgosUgnayan" when the app answered by itself;
+/// "Facts only (no AI)" when the AI was busy.
 class _Label extends StatelessWidget {
-  const _Label({required this.isFallback});
+  const _Label({required this.isFallback, required this.fromApp});
 
   final bool isFallback;
+  final bool fromApp;
 
   @override
   Widget build(BuildContext context) {
+    if (fromApp) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Text(
+          'From AgosUgnayan',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primaryDark,
+          ),
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -86,6 +135,30 @@ class _Label extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w700,
           color: isFallback ? AppColors.textMuted : AppColors.info,
+        ),
+      ),
+    );
+  }
+}
+
+/// "General answer, not from AgosUgnayan data".
+class _GeneralTag extends StatelessWidget {
+  const _GeneralTag();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.warningLight,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Text(
+        'General answer, not from AgosUgnayan data',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: AppColors.warningInk,
         ),
       ),
     );

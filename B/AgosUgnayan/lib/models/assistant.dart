@@ -54,6 +54,11 @@ enum AssistantIntent {
   orderStatus,
   howTo,
   outOfScope, // answered by the app itself, never sent to the AI
+  about, // what AgosUgnayan is (answered by the app)
+  ranking, // "top 3 prices", "cheapest fruit" (computed by the app)
+  compare, // "compare tomato and cabbage"
+  changes, // "what changed since last month?"
+  general, // anything else: a friendly answer from general knowledge
 }
 
 /// A suggested question chip: its words and what kind of question it is.
@@ -80,7 +85,10 @@ class AssistantMessage {
       isFallback = false,
       facts = const [],
       listings = const [],
-      marketCrop = null;
+      marketCrop = null,
+      fromApp = false,
+      isGeneral = false,
+      suggestions = const [];
 
   const AssistantMessage.answer({
     required this.text,
@@ -88,6 +96,9 @@ class AssistantMessage {
     this.facts = const [],
     this.listings = const [],
     this.marketCrop,
+    this.fromApp = false,
+    this.isGeneral = false,
+    this.suggestions = const [],
   }) : isBuyer = false;
 
   final bool isBuyer;
@@ -106,4 +117,79 @@ class AssistantMessage {
 
   /// When set, an "Open the Market" link is shown (the crop searched).
   final String? marketCrop;
+
+  /// True when the app answered by itself (no AI needed): labeled
+  /// "From AgosUgnayan" instead of "AI suggestion".
+  final bool fromApp;
+
+  /// True when (part of) the answer is general knowledge, not
+  /// AgosUgnayan data: labeled "General answer, not from AgosUgnayan data".
+  final bool isGeneral;
+
+  /// Questions the buyer can tap next (after "I can't help with that").
+  final List<SuggestedQuestion> suggestions;
+}
+
+/// The question chips for [page]: they change with the screen.
+List<SuggestedQuestion> suggestionsFor(AssistantPage page) {
+  const howRequest = SuggestedQuestion(
+    'How do I request a crop?',
+    AssistantIntent.howTo,
+  );
+  final crop = page.pageCrop?.toLowerCase();
+  return switch (page.screen) {
+    AssistantScreen.market => const [
+      SuggestedQuestion('Find the cheapest tomato', AssistantIntent.search),
+      SuggestedQuestion('What is available near me?', AssistantIntent.search),
+      SuggestedQuestion('How do I store tomatoes?', AssistantIntent.general),
+    ],
+    AssistantScreen.prices => const [
+      SuggestedQuestion('Explain PSA farmgate prices', AssistantIntent.howTo),
+      SuggestedQuestion('Find the cheapest pechay', AssistantIntent.search),
+    ],
+    AssistantScreen.priceDetail => [
+      SuggestedQuestion('Is this price going up?', AssistantIntent.trend),
+      SuggestedQuestion('Explain this price', AssistantIntent.priceCheck),
+      if (crop != null)
+        SuggestedQuestion('Find $crop for sale', AssistantIntent.search),
+    ],
+    AssistantScreen.listing => const [
+      SuggestedQuestion('Is this price fair?', AssistantIntent.priceCheck),
+      SuggestedQuestion('How much for 5 kg?', AssistantIntent.offerMath),
+      SuggestedQuestion('How do I buy this?', AssistantIntent.howTo),
+    ],
+    AssistantScreen.chat =>
+      page.order == null
+          ? const [
+              SuggestedQuestion(
+                'What does Reserved mean?',
+                AssistantIntent.howTo,
+              ),
+              howRequest,
+            ]
+          : const [
+              SuggestedQuestion(
+                'What does this offer total?',
+                AssistantIntent.offerMath,
+              ),
+              SuggestedQuestion(
+                'What does this status mean?',
+                AssistantIntent.orderStatus,
+              ),
+              SuggestedQuestion(
+                'Is this price fair?',
+                AssistantIntent.priceCheck,
+              ),
+            ],
+    AssistantScreen.orders || AssistantScreen.messages => const [
+      SuggestedQuestion('What does Reserved mean?', AssistantIntent.howTo),
+      SuggestedQuestion('Why did my request expire?', AssistantIntent.howTo),
+    ],
+    _ => const [
+      SuggestedQuestion('Find the cheapest tomato', AssistantIntent.search),
+      SuggestedQuestion('Top 5 vegetable prices', AssistantIntent.ranking),
+      SuggestedQuestion('How do I store tomatoes?', AssistantIntent.general),
+      howRequest,
+    ],
+  };
 }

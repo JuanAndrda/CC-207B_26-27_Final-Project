@@ -311,21 +311,30 @@ bool asksZeroOrLess(String text) => RegExp(
 ).hasMatch(text);
 
 /// How many letters must change to turn [a] into [b] (edit distance).
+/// Swapping two letters next to each other ("prcie") counts as one.
 int editDistance(String a, String b) {
-  var previous = List<int>.generate(b.length + 1, (i) => i);
+  final d = List.generate(a.length + 1, (_) => List.filled(b.length + 1, 0));
+  for (var i = 0; i <= a.length; i++) {
+    d[i][0] = i;
+  }
+  for (var j = 0; j <= b.length; j++) {
+    d[0][j] = j;
+  }
   for (var i = 1; i <= a.length; i++) {
-    final current = [i, ...List<int>.filled(b.length, 0)];
     for (var j = 1; j <= b.length; j++) {
       final cost = a[i - 1] == b[j - 1] ? 0 : 1;
-      current[j] = [
-        previous[j] + 1,
-        current[j - 1] + 1,
-        previous[j - 1] + cost,
+      var best = [
+        d[i - 1][j] + 1, // remove a letter
+        d[i][j - 1] + 1, // add a letter
+        d[i - 1][j - 1] + cost, // change a letter
       ].reduce((x, y) => x < y ? x : y);
+      if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]) {
+        best = best < d[i - 2][j - 2] + 1 ? best : d[i - 2][j - 2] + 1;
+      }
+      d[i][j] = best;
     }
-    previous = current;
   }
-  return previous[b.length];
+  return d[a.length][b.length];
 }
 
 /// The first of our 71 crops named in [lower] (lowercase text), by name
@@ -415,50 +424,270 @@ List<Listing> searchListings(
 
 // -------------------------------------------------------- intent and data
 
-/// Guesses what kind of question [text] is, using the page as a hint.
-AssistantIntent detectIntent(String text, AssistantPage page) {
+/// Words the assistant looks for. A typed word that is close to one of
+/// these ("prcie", "chepest", "webiste") or that hides one inside it
+/// ("hteprices") is read as that word, so small typos don't matter.
+const List<String> kAssistantWords = [
+  'price',
+  'prices',
+  'cheapest',
+  'expensive',
+  'highest',
+  'lowest',
+  'compare',
+  'website',
+  'explain',
+  'request',
+  'reserved',
+  'available',
+  'vegetables',
+  'vegetable',
+  'fruits',
+  'changed',
+  'change',
+  'month',
+  'total',
+  'order',
+  'orders',
+  'follow',
+  'expired',
+  'agosugnayan',
+];
+
+/// The question in lowercase, with typos of [kAssistantWords] fixed.
+String normalizeQuestion(String text) {
   final lower = text.toLowerCase();
+  return lower.replaceAllMapped(RegExp(r'[a-z]{4,}'), (match) {
+    final word = match.group(0)!;
+    if (kAssistantWords.contains(word)) return word;
+    for (final known in kAssistantWords) {
+      if (known.length < 5) continue;
+      // "hteprices" -> "the prices": the word hides a known word.
+      if (word.length > known.length && word.endsWith(known)) {
+        return '${word.substring(0, word.length - known.length)} $known';
+      }
+      final limit = known.length >= 7 ? 2 : 1;
+      if ((word.length - known.length).abs() <= limit &&
+          editDistance(word, known) <= limit) {
+        return known;
+      }
+    }
+    return word;
+  });
+}
+
+/// Every one of our crops named in [lower], in the order they appear.
+List<String> cropsInText(String lower) {
+  final found = <(int, String)>[];
+  for (final info in kCropCatalog) {
+    for (final name in [info.name, ...info.localNames]) {
+      final match = RegExp('\\b${RegExp.escape(name.toLowerCase())}\\b')
+          .firstMatch(lower);
+      if (match != null) {
+        found.add((match.start, info.name));
+        break;
+      }
+    }
+  }
+  found.sort((a, b) => a.$1.compareTo(b.$1));
+  return [for (final f in found) f.$2];
+}
+
+/// Guesses what kind of question [text] is, using the page as a hint.
+/// Returns null when it can't tell (then the AI is asked to classify it).
+/// The order matters: app data first (so numbers come from the app),
+/// then general chat, then how-to help.
+AssistantIntent? detectIntent(String text, AssistantPage page) {
+  final lower = normalizeQuestion(text);
   bool has(String pattern) => RegExp(pattern).hasMatch(lower);
   // Things the assistant must not do are answered by the app itself.
   if (outOfScopeReply(text) != null) return AssistantIntent.outOfScope;
-  if (has(r'do you have|for sale|meron|may .* ba\b')) {
+  final crop = keywordQuery(lower).crop;
+  final crops = cropsInText(lower);
+  final onItem = page.listing != null || page.order != null;
+  final priceWords = has(
+    r'\b(price|prices|fair|how much|total|magkano|pila|presyo|cheap|'
+    r'cheapest|expensive|mahal|barato|cost)\b',
+  );
+
+  // "What is this website?", "ano ito?", "unsa ni nga website?"
+  if (has(
+    r'what is (this|agosugnayan|the app)|what.s this|about (this|the) '
+    r'(app|website|site)|explain (this|the) (app|website|site)|'
+    r'(tell me|talk) about (this|the) (app|website|site)|how does (this|it|'
+    r'the app) work|\bano (ito|ba ito|ang agosugnayan)\b|\bunsa (ni|ang)\b|'
+    r'para saan|what can you do|who are you|this (website|app|site)\b|'
+    r'\bagosugnayan\b',
+  )) {
+    return AssistantIntent.about;
+  }
+  if (crops.length >= 2 && has(r'\b(compare|vs|versus|or|and|kag|ug|at)\b')) {
+    return AssistantIntent.compare;
+  }
+  if (crop == null &&
+      has(r'changed|change since|went (up|down)|last month|tumaas|bumaba')) {
+    return AssistantIntent.changes;
+  }
+  // "top 3 prices", "cheapest fruit", "pinakamahal nga prutas"
+  if (crop == null &&
+      has(
+        r'\btop\b|highest|lowest|cheapest|expensive|pinakamahal|'
+        r'pinakamura|barato|mahal|presyo',
+      ) &&
+      has(
+        r'price|crop|vegetable|fruit|prutas|gulay|utan|bunga|leafy|'
+        r'root|bean|condiment|\btop\b|pinaka',
+      )) {
+    return AssistantIntent.ranking;
+  }
+  // A crop "in the Market": real listings, not the PSA reference.
+  // "Do you have rice?" is a search too (it then says rice is not one of
+  // our crops).
+  if (has(r'in the market|for sale|listing|do you have|meron|may .* ba\b')) {
     return AssistantIntent.search;
   }
-  if (has(
-    r'\bhow (do|can|to)\b|\bwhat is\b.*\b(order|request|follow)|'
-    r'\bwhere (do|can)\b|\bexpired?\b|\bfollow',
-  )) {
-    if (!has(r'how much|total')) return AssistantIntent.howTo;
+  if (crop != null &&
+      has(
+        r'\b(find|cheapest|search|available|near|where|show|buy)\b|looking for',
+      )) {
+    return AssistantIntent.search;
   }
-  if (has(r'reserved|status|waiting|offer mean|what does .* mean')) {
+  // "pila ang kamatis sa Leon?": a crop with a town (or asked on the
+  // Market) means the farmers' asking prices, so search the listings.
+  if (crop != null &&
+      priceWords &&
+      (keywordQuery(lower).town != null ||
+          page.screen == AssistantScreen.market)) {
+    return AssistantIntent.search;
+  }
+  // Totals for the listing or order on the page.
+  if (onItem &&
+      has(r'how much for|total|\bfor \d|\d+\s*(kg|kilo)|magkano ang \d')) {
+    return AssistantIntent.offerMath;
+  }
+  if (crop != null && has(r'going up|trend|rising|falling|next week')) {
+    return AssistantIntent.trend;
+  }
+  // Price questions about a crop (named, or the one on the page). Mixed
+  // questions ("is 45 fair and how do I store it?") also come here; the
+  // answer then shows the general label too.
+  if (priceWords && (crop != null || page.pageCrop != null)) {
+    return AssistantIntent.priceCheck;
+  }
+  // "How much is rice?": a price for a crop we don't have. The price
+  // path then says honestly that there is no PSA record.
+  if (has(r'how much is|price of|presyo sang|presyo ng|magkano ang')) {
+    return AssistantIntent.priceCheck;
+  }
+  // Food, storage, cooking, health basics and small talk: general chat.
+  if (has(
+    r'\b(store|storage|keep (it|them)|fresh longer|cook|recipe|nutrition|'
+    r'vitamin|healthy|safe to eat|diabetes|difference between|joke|hello|'
+    r'hi|hey|kumusta|musta|thank|thanks|salamat|bye|good (morning|'
+    r'afternoon|evening))\b',
+  )) {
+    return AssistantIntent.general;
+  }
+  if (has(r'\b(reserved|status|waiting)\b|offer mean|what does .* mean')) {
     return page.order != null
         ? AssistantIntent.orderStatus
         : AssistantIntent.howTo;
   }
-  if (has(r'how much|total|magkano|pila|for \d|\d+\s*(kg|kilo)')) {
-    if (page.listing != null || page.order != null) {
-      return AssistantIntent.offerMath;
-    }
+  if (has(
+    r'\bhow (do|can|to|does)\b|\bwhat is\b.*\b(order|request|follow)|'
+    r'\bwhere (do|can)\b|\bexpired?\b|\bfollow|\bpaano\b',
+  )) {
+    return AssistantIntent.howTo;
   }
   if (has(r'going up|trend|rising|falling|tumaas|bumaba')) {
     return AssistantIntent.trend;
   }
-  if (has(
-    r'fair|expensive|cheap(er)? than|reference|psa|explain .*price|'
-    r'mahal|barato',
-  )) {
-    if (page.pageCrop != null || keywordQuery(text).crop != null) {
-      return AssistantIntent.priceCheck;
-    }
-  }
-  if (has(
-    r'find|cheapest|search|available|near|where|show|looking for|'
-    r'may .* ba|buy',
-  )) {
+  if (has(r'\b(find|search|available|near|where|show|looking for|buy)\b')) {
     return AssistantIntent.search;
   }
-  if (keywordQuery(text).crop != null) return AssistantIntent.search;
-  return AssistantIntent.howTo;
+  if (crop != null) return AssistantIntent.search;
+  return null; // not sure: the service checks the FAQ, then asks the AI
+}
+
+/// The buyer's language, from common words: "Hiligaynon", "Filipino" or
+/// "English". The prompt then says exactly which one to answer in, so
+/// the AI doesn't switch language on its own.
+String replyLanguage(String text) {
+  final words = RegExp(r"[a-z']+")
+      .allMatches(text.toLowerCase())
+      .map((m) => m.group(0)!)
+      .toSet();
+  const hiligaynon = {
+    'pila',
+    'sang',
+    'subong',
+    'gid',
+    'kag',
+    'nga',
+    'unsa',
+    'diin',
+    'bala',
+    'ini',
+    'ari',
+    'man',
+    'utan',
+    'baligya',
+    'presyo',
+    'salamat',
+    'musta',
+    'gusto',
+    'ko',
+    'ka',
+    'ni',
+  };
+  const filipino = {
+    'magkano',
+    'po',
+    'ano',
+    'ito',
+    'ba',
+    'ng',
+    'mga',
+    'saan',
+    'paano',
+    'yung',
+    'natin',
+    'ang',
+    'gulay',
+    'mura',
+    'kumusta',
+    'ako',
+  };
+  final hil = words.intersection(hiligaynon).length;
+  final fil = words.intersection(filipino).length;
+  if (hil == 0 && fil == 0) return 'English';
+  // Words both languages share count for both; Hiligaynon-only words
+  // (pila, sang, gid, kag, nga, subong) decide.
+  return hil >= fil ? 'Hiligaynon' : 'Filipino';
+}
+
+/// True when a data question also asks something general, like "is 45
+/// fair for tomato AND how do I store it?" (the answer then shows both
+/// labels).
+bool hasGeneralPart(String text) => RegExp(
+  r'\b(store|storage|keep (it|them)|cook|recipe|nutrition|vitamin|healthy|'
+  r'season|grow|plant|difference between|what is a)\b',
+).hasMatch(text.toLowerCase());
+
+/// Reads the AI's one-word classification, e.g. "ranking". Anything else
+/// (unknown words, "outOfScope") becomes null: the app then gives its
+/// friendly "I can't help with that" answer.
+AssistantIntent? parseIntent(String text) {
+  final word = text.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
+  for (final intent in AssistantIntent.values) {
+    if (intent.name.toLowerCase() == word) {
+      // "outOfScope" now means: just chat (general knowledge).
+      return intent == AssistantIntent.outOfScope
+          ? AssistantIntent.general
+          : intent;
+    }
+  }
+  return null;
 }
 
 /// A fixed answer (no AI) for questions the assistant must not handle:
@@ -485,12 +714,9 @@ String? outOfScopeReply(String text) {
     return "I can't share anyone's contact details. Use \"Message farmer\" "
         'to talk with a farmer inside the app.';
   }
-  if (has(
-    r'safe to eat|diabetes|\bsick\b|disease|medicine|medical|\bhealth|'
-    r'allerg|pregnan|\bcure',
-  )) {
-    return "I can't give health or medical advice. Please ask a doctor or "
-        'a health worker.';
+  if (has(r'discount|tawad|haggle|lower (the|your) price|bawas')) {
+    return "I can't change prices or give discounts. You can ask the farmer "
+        'politely in Messages.';
   }
   if (has(
     r'\b(buy|order|reserve|accept|decline|cancel)\b.*\bfor me\b|'
@@ -550,7 +776,7 @@ String factsJson(Map<String, dynamic> facts, {int maxChars = 2400}) {
 class AssistantLimits {
   AssistantLimits({
     this.cooldown = const Duration(seconds: 3),
-    this.maxPerSession = 20,
+    this.maxPerSession = 40,
   });
 
   final Duration cooldown;

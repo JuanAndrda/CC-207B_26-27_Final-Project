@@ -198,8 +198,8 @@ class _AssistantPanelState extends State<AssistantPanel> {
                 children: [
                   if (_c.messages.isEmpty)
                     const Text(
-                      'Ask about prices, totals, where to find a crop, or how '
-                      'the app works. I can only read; I never buy or send '
+                      'Hi! Ask me about AgosUgnayan, prices and listings, or '
+                      'just chat. I can only read: I never buy or send '
                       'messages for you.',
                       style: AppTextStyles.meta,
                     ),
