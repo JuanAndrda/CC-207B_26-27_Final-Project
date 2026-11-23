@@ -63,4 +63,8 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Value widgets | `lib/widgets/stock_summary.dart` | `StockSummary`, `StockChip` | "15 kg available · 5 reserved · 0 sold" with a bar; "Only 3 kg left" |
 | Persistence | `lib/services/listing_photo_service.dart`, `lib/utils/photo_compress.dart` | `ListingPhotoService`, `compressPhoto` | Farmer's photo shrunk on the device and saved in Firestore, loaded lazily |
 | Interaction | `lib/widgets/photo_picker_field.dart` | `PhotoPickerField` | Add, change or remove a photo with a preview; sample photo as fallback |
+| AI | `lib/services/buyer_assistant_service.dart` | `BuyerAssistantService`, `GeminiAssistantAi`, `FakeAssistantAi`, `buildAnswerPrompt` | Buyer assistant: facts first, Gemini words them, fallback without AI |
+| Async / API | `lib/utils/assistant_facts.dart` | `comparePrice`, `offerFacts`, `searchListings`, `parseSearchQuery`, `AssistantLimits` | Numbers and search in plain Dart, unit-tested |
+| Navigation | `lib/services/assistant_controller.dart` | `AssistantController`, `AssistantScope`, `AssistantRouteObserver` | Pages report their context; button hides on forms and sheets |
+| Layout | `lib/widgets/assistant_layer.dart`, `lib/widgets/assistant_messages.dart` | `AssistantLayer`, `AssistantPanel`, `AssistantMessageView` | Floating button and panel (half screen on phones, corner panel on laptops) |
 | Privacy | `lib/utils/privacy_filter.dart` | `removeContactDetails` | Removes phone numbers and emails before calling the AI |

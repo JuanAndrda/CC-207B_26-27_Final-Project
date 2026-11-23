@@ -161,3 +161,23 @@ No layout errors.
 | 5 Error prevention | Buyers see the page read-only: the admin buttons (Get latest PSA prices, Load reference prices, Add price) only show for the admin | `screens/price_list_screen.dart` |
 
 Checked as buyer@demo.ph on the emulator at 375 and 1280 px.
+
+## Update (Nov 23): buyer AI assistant
+
+| Heuristic | Change | File / widget |
+|---|---|---|
+| 1 Visibility of system status | "Looking it up…" while it works; "The assistant is busy right now" when the AI fails; a wait message between questions | `widgets/assistant_layer.dart` |
+| 3 User control and freedom | Close and reopen without losing the chat; "New chat"; it never acts for the buyer (read-only) | `services/assistant_controller.dart` |
+| 5 Error prevention | The numbers come from the app, not the AI; search only shows real listings with stock; the button hides on forms and sheets so it never covers their buttons | `utils/assistant_facts.dart` |
+| 6 Recognition rather than recall | Suggested questions change with the page, and the assistant already knows the listing, price or order on screen | `services/assistant_controller.dart` (`suggestionsFor`) |
+| 9 Error recovery | Without AI, the same facts and listing cards are still shown | `services/buyer_assistant_service.dart` |
+| 10 Help | How-to answers come from a short FAQ of the app's real flows | `kAppFaq` |
+
+Checked on the emulator (with the test AI) at 375 and 1280 px:
+- the button above the phone tab bar and clear of the chat's message box;
+- the panel layout;
+- chips on Market, a listing and a chat;
+- search results opening a listing;
+- price check and offer total.
+
+The fallback is covered by a widget test.

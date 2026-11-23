@@ -28,6 +28,13 @@
 
 - **Changing your name** in Edit profile does not rename crops, requests or chats you posted before; they keep the name they were posted with (the app says so on the Edit profile page).
 
+- **Buyer AI assistant**:
+  - It remembers the chat only until the buyer logs out or closes the app; there is no memory across sessions.
+  - It allows 20 AI questions per session (then facts only), one at a time, 3 seconds apart.
+  - Its words can be wrong; the numbers in the Facts box come from the app.
+  - Trends only use the 12 months of PSA prices we have and do not predict prices.
+  - It doesn't work in the emulator unless built with `FAKE_AI=true`.
+
 ## Free-tier limits that matter
 
 We only use free services. A class-sized test stays far below these limits, but they are good to know:
