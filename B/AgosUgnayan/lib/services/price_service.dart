@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/price_record.dart';
 import '../utils/app_exception.dart';
 import '../utils/app_logger.dart';
+import '../utils/crop_catalog.dart';
 import '../utils/format.dart';
 
 /// The prices plus where they came from.
@@ -45,11 +46,14 @@ class PriceService {
             .toList();
       });
       await _saveCopy(records);
-      return PriceData(records);
+      return PriceData(withReferencePrices(records));
     } on AppException {
       final copy = await _loadCopy();
       if (copy == null) rethrow; // no saved copy: show the error
-      return copy;
+      return PriceData(
+        withReferencePrices(copy.records),
+        savedCopyFrom: copy.savedCopyFrom,
+      );
     }
   }
 
@@ -84,6 +88,66 @@ class PriceService {
         await batch.commit();
       }
     });
+  }
+
+  /// The PSA reference prices from the crop catalog (one per crop, each
+  /// with the month PSA published it), as price records.
+  static List<PriceRecord> referenceRecords() => [
+    for (final crop in kCropCatalog)
+      PriceRecord(
+        crop: crop.name,
+        month: crop.referenceMonth,
+        price: crop.referencePrice,
+      ),
+  ];
+
+  /// [records] plus every catalog reference price that is not already there
+  /// (same crop and month). So every crop has at least one price, even when
+  /// the database has none yet, and a database price always wins.
+  static List<PriceRecord> withReferencePrices(List<PriceRecord> records) {
+    final have = {for (final record in records) record.docId};
+    return [
+      ...records,
+      for (final reference in referenceRecords())
+        if (!have.contains(reference.docId)) reference,
+    ];
+  }
+
+  /// Saves the catalog's reference prices to the database (admin only).
+  /// Same document ids as the PSA import, so nothing is duplicated.
+  Future<void> saveReferencePrices(String adminId) =>
+      saveMany(referenceRecords(), adminId);
+
+  /// The newest month of all [records], e.g. "2026-06" (null when empty).
+  static String? newestMonth(List<PriceRecord> records) {
+    if (records.isEmpty) return null;
+    return records
+        .map((record) => record.month)
+        .reduce((a, b) => a.compareTo(b) > 0 ? a : b);
+  }
+
+  /// True when [crop]'s newest price is from before the newest month of all
+  /// prices. Such a price is labeled "Older price" and never shown as current.
+  static bool isOlderPrice(String crop, List<PriceRecord> records) {
+    final latest = latestFor(crop, records);
+    final newest = newestMonth(records);
+    return latest != null &&
+        newest != null &&
+        latest.month.compareTo(newest) < 0;
+  }
+
+  /// How much [crop]'s price changed since the month just before its newest
+  /// price. Null when there is no price for exactly the month before (we
+  /// never compare months that are far apart).
+  static double? monthlyChange(String crop, List<PriceRecord> records) {
+    final history = historyFor(crop, records);
+    if (history.length < 2) return null;
+    final latest = history.last;
+    final previous = history[history.length - 2];
+    final date = DateTime.parse('${latest.month}-01');
+    final monthBefore = monthKeyOf(DateTime(date.year, date.month - 1));
+    if (previous.month != monthBefore) return null;
+    return latest.price - previous.price;
   }
 
   /// The newest price for [crop] from [records], or null if there is none.

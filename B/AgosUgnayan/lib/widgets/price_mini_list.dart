@@ -11,6 +11,7 @@ import '../utils/format.dart';
 import '../utils/theme.dart';
 import 'crop_thumb.dart';
 import 'listing_card.dart';
+import 'price_change.dart';
 
 /// Rows for [crops] (only crops that have a price are shown).
 class PriceMiniList extends StatelessWidget {
@@ -47,17 +48,12 @@ class PriceMiniList extends StatelessWidget {
   Widget _row(BuildContext context, String crop) {
     final history = PriceService.historyFor(crop, records);
     final latest = history.last;
-    final previous = history.length > 1 ? history[history.length - 2] : null;
-    final change = previous == null ? 0.0 : latest.price - previous.price;
-    final (text, color) = previous == null || change == 0
-        ? ('No change', AppColors.textMuted)
-        : change > 0
-        ? ('▲ ${formatPeso(change)}', AppColors.primaryDark)
-        : ('▼ ${formatPeso(change.abs())}', AppColors.danger);
+    final isOlder = PriceService.isOlderPrice(crop, records);
     return InkWell(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => PriceDetailScreen(crop: crop, history: history),
+          builder: (_) =>
+              PriceDetailScreen(crop: crop, history: history, isOlder: isOlder),
         ),
       ),
       child: Padding(
@@ -82,13 +78,10 @@ class PriceMiniList extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 PriceText(price: latest.price, unit: 'kg', fontSize: 15),
-                Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
+                PriceChangeText(
+                  change: PriceService.monthlyChange(crop, records),
+                  isOlder: isOlder,
+                  fontSize: 12,
                 ),
               ],
             ),

@@ -15,12 +15,14 @@ import '../utils/format.dart';
 import '../utils/paging.dart';
 import '../utils/snackbars.dart';
 import '../utils/theme.dart';
+import '../widgets/chip_filter_row.dart';
 import '../widgets/crop_thumb.dart';
 import '../widgets/list_page.dart';
 import '../widgets/list_tools.dart';
 import '../widgets/listing_card.dart';
 import '../widgets/notice_box.dart';
 import '../widgets/page_header.dart';
+import '../widgets/price_change.dart';
 import 'admin_price_form_screen.dart';
 import 'price_detail_screen.dart';
 
@@ -40,6 +42,9 @@ class _PriceListScreenState extends State<PriceListScreen> {
   bool _isImporting = false;
   String? _error;
   String _search = '';
+  CropCategory? _category; // null = all categories
+  int _page = 1;
+  final _scroll = ScrollController();
   _Sort _sort = _Sort.name;
 
   @override
@@ -124,6 +129,11 @@ class _PriceListScreenState extends State<PriceListScreen> {
           ),
         ),
         OutlinedButton.icon(
+          onPressed: _isImporting ? null : _loadReferencePrices,
+          icon: const Icon(Icons.playlist_add_check),
+          label: const Text('Load reference prices'),
+        ),
+        OutlinedButton.icon(
           onPressed: _isImporting ? null : _openAdminForm,
           icon: const Icon(Icons.add),
           label: const Text('Add price'),
@@ -132,20 +142,48 @@ class _PriceListScreenState extends State<PriceListScreen> {
     );
   }
 
-  /// How much a crop's price changed since the month before (0 if new).
-  static double _change(String crop, List<PriceRecord> records) {
-    final history = PriceService.historyFor(crop, records);
-    if (history.length < 2) return 0;
-    return history.last.price - history[history.length - 2].price;
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _update(VoidCallback change) {
+    setState(() {
+      change();
+      _page = 1;
+    });
+  }
+
+  /// Loads the crop catalog's PSA reference prices into the database
+  /// (admin only), so everyone sees them even without the catalog.
+  Future<void> _loadReferencePrices() async {
+    setState(() => _isImporting = true);
+    try {
+      await PriceService().saveReferencePrices(AuthService.currentUser!.id);
+      if (!mounted) return;
+      showMessage(
+        context,
+        'Saved ${kCropCatalog.length} reference prices, each with its own month.',
+      );
+      _load();
+    } catch (e) {
+      if (mounted) showError(context, friendlyMessage(e));
+    }
+    if (mounted) setState(() => _isImporting = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final records = _data?.records ?? [];
     // Only crops that have at least one price, matching the search.
-    final crops = kCrops
+    final crops = kCropCatalog
+        .where((crop) => _category == null || crop.category == _category)
+        .where(
+          (crop) => matchesSearch(_search, [crop.name, ...crop.localNames]),
+        )
+        .map((crop) => crop.name)
         .where((crop) => PriceService.latestFor(crop, records) != null)
-        .where((crop) => matchesSearch(_search, [crop]))
         .toList();
     double latest(String crop) => PriceService.latestFor(crop, records)!.price;
     switch (_sort) {
@@ -158,13 +196,16 @@ class _PriceListScreenState extends State<PriceListScreen> {
       case _Sort.change:
         // Biggest change first, up or down.
         crops.sort(
-          (a, b) =>
-              _change(b, records).abs().compareTo(_change(a, records).abs()),
+          (a, b) => (PriceService.monthlyChange(b, records) ?? 0)
+              .abs()
+              .compareTo((PriceService.monthlyChange(a, records) ?? 0).abs()),
         );
     }
     final isAdmin = AuthService.currentUser?.isAdmin ?? false;
+    final slice = pageOf(crops, _page, pageSize: 20);
 
     return ListPage(
+      controller: _scroll,
       onRefresh: _load,
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,6 +219,8 @@ class _PriceListScreenState extends State<PriceListScreen> {
               'The month is shown on every price. PSA publishes a few months '
                   'late, so these are a guide, not live prices.',
               '▲ means the price went up since the month before, ▼ down.',
+              '"Older price" means PSA has no newer price for that crop yet; '
+                  'its real month is shown.',
               'Tap a crop to see its last 12 months.',
             ],
           ),
@@ -194,7 +237,7 @@ class _PriceListScreenState extends State<PriceListScreen> {
           ListToolbar(
             search: SearchBox(
               hint: 'Search a crop…',
-              onChanged: (text) => setState(() => _search = text),
+              onChanged: (text) => _update(() => _search = text),
             ),
             sort: SortMenu<_Sort>(
               value: _sort,
@@ -204,8 +247,16 @@ class _PriceListScreenState extends State<PriceListScreen> {
                 _Sort.priceLow: 'Lowest price',
                 _Sort.change: 'Biggest change',
               },
-              onChanged: (sort) => setState(() => _sort = sort),
+              onChanged: (sort) => _update(() => _sort = sort),
             ),
+            resultText: _isLoading
+                ? null
+                : '${crops.length} crop${crops.length == 1 ? '' : 's'}',
+          ),
+          const SizedBox(height: 10),
+          CategoryChipRow(
+            selected: _category,
+            onSelected: (category) => _update(() => _category = category),
           ),
         ],
       ),
@@ -218,18 +269,24 @@ class _PriceListScreenState extends State<PriceListScreen> {
           : isAdmin
           ? 'No prices yet. Tap "Get latest PSA prices" to download them.'
           : 'No reference prices yet. Please check again later.',
-      // Only 10 crops, so no page numbers are needed: one card, two
-      // columns of rows on a wide screen.
+      // 71 crops: 20 per page, two columns of rows on a wide screen.
       sliverBuilder: (context, width) => sliverCardGrid(
         contentWidth: width,
-        count: crops.length,
+        count: slice.items.length,
         minTileWidth: 440,
         maxColumns: 2,
         tileHeight: 80,
         itemBuilder: (context, index) => Card(
           clipBehavior: Clip.antiAlias,
-          child: _buildRow(crops[index], records),
+          child: _buildRow(slice.items[index], records),
         ),
+      ),
+      pagination: PaginationBar(
+        slice: slice,
+        onPage: (page) {
+          setState(() => _page = page);
+          if (_scroll.hasClients) _scroll.jumpTo(0);
+        },
       ),
     );
   }
@@ -254,25 +311,15 @@ class _PriceListScreenState extends State<PriceListScreen> {
   Widget _buildRow(String crop, List<PriceRecord> records) {
     final history = PriceService.historyFor(crop, records);
     final latest = history.last;
-    // Compare with the month before, if we have it.
-    final previous = history.length > 1 ? history[history.length - 2] : null;
-    final change = previous == null ? 0.0 : latest.price - previous.price;
-    final changeText = previous == null
-        ? 'New'
-        : change == 0
-        ? 'No change'
-        : '${change > 0 ? '▲' : '▼'} ${formatPeso(change.abs())}';
-    // Green when the price went up, red (with ▼) when it went down.
-    final changeColor = previous == null || change == 0
-        ? AppColors.textMuted
-        : change > 0
-        ? AppColors.primaryDark
-        : AppColors.danger;
 
     return InkWell(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => PriceDetailScreen(crop: crop, history: history),
+          builder: (_) => PriceDetailScreen(
+            crop: crop,
+            history: history,
+            isOlder: PriceService.isOlderPrice(crop, records),
+          ),
         ),
       ),
       child: Padding(
@@ -306,13 +353,10 @@ class _PriceListScreenState extends State<PriceListScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 PriceText(price: latest.price, unit: 'kg'),
-                Text(
-                  changeText,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: changeColor,
-                  ),
+                const SizedBox(height: 2),
+                PriceChangeText(
+                  change: PriceService.monthlyChange(crop, records),
+                  isOlder: PriceService.isOlderPrice(crop, records),
                 ),
               ],
             ),

@@ -44,7 +44,8 @@ class _BuyerDemandScreenState extends State<BuyerDemandScreen> {
   String? _error;
 
   String _search = '';
-  String? _crop; // null = all crops
+  CropCategory? _category; // null = all categories
+  String? _crop; // null = all crops (of the category)
   String? _town; // null = all towns
   bool _onlyMine = false; // only crops this farmer sells
   DemandSort _sort = DemandSort.soonest;
@@ -95,10 +96,15 @@ class _BuyerDemandScreenState extends State<BuyerDemandScreen> {
   }
 
   bool get _isFiltered =>
-      _search.isNotEmpty || _crop != null || _town != null || _onlyMine;
+      _search.isNotEmpty ||
+      _category != null ||
+      _crop != null ||
+      _town != null ||
+      _onlyMine;
 
   void _clearAll() => _update(() {
     _search = '';
+    _category = null;
     _crop = null;
     _town = null;
     _onlyMine = false;
@@ -107,6 +113,9 @@ class _BuyerDemandScreenState extends State<BuyerDemandScreen> {
   List<BuyerRequest> get _visible {
     final list = _requests.where((r) {
       if (_crop != null && r.crop != _crop) return false;
+      if (_category != null && cropInfo(r.crop)?.category != _category) {
+        return false;
+      }
       if (_town != null && r.town != _town) return false;
       if (_onlyMine && !_myCrops.contains(r.crop)) return false;
       return matchesSearch(_search, [r.crop, r.town, r.buyerName, r.notes]);
@@ -163,6 +172,14 @@ class _BuyerDemandScreenState extends State<BuyerDemandScreen> {
             ),
             filters: [
               FilterDropdown(
+                value: _crop,
+                allLabel: 'All crops',
+                options: _category == null ? kCrops : cropsIn(_category!),
+                icon: Icons.eco_outlined,
+                width: 168,
+                onChanged: (crop) => _update(() => _crop = crop),
+              ),
+              FilterDropdown(
                 value: _town,
                 allLabel: 'All towns',
                 options: kTowns,
@@ -189,10 +206,14 @@ class _BuyerDemandScreenState extends State<BuyerDemandScreen> {
             onClearAll: _isFiltered ? _clearAll : null,
           ),
           const SizedBox(height: 10),
-          ChipFilterRow(
-            options: kCrops,
-            selected: _crop,
-            onSelected: (crop) => _update(() => _crop = crop),
+          CategoryChipRow(
+            selected: _category,
+            onSelected: (category) => _update(() {
+              _category = category;
+              if (_crop != null && cropInfo(_crop!)?.category != category) {
+                _crop = null;
+              }
+            }),
           ),
         ],
       ),

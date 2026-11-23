@@ -24,7 +24,7 @@ void main() {
 
   test('drops values we cannot use', () {
     final s = AiListingSuggestion.fromJsonText(
-      '{"crop": "Durian", "quantity": -5, "unit": "ton", "price": null}',
+      '{"crop": "Strawberry", "quantity": -5, "unit": "ton", "price": null}',
     );
     expect(s.crop, isNull);
     expect(s.quantity, isNull);

@@ -3,32 +3,25 @@
 // photo of its own and are always labeled "Sample photo", so nobody takes
 // them for a farmer's real harvest. Each photo keeps its author and license.
 //
-// Calls: one page summary per crop (photo + description), then one call for
-// the photo credits. The result is saved on the phone for a week, so
-// Wikipedia is asked about once a week; the saved copy is used offline. If
-// Wikipedia can't be reached, crops keep the green leaf placeholder.
+// With 71 crops we load photos LAZILY: a crop's photo is asked for only when
+// a card on screen needs it, at most 2 requests at a time (Wikipedia blocks
+// apps that ask too fast). Every photo is saved on the phone for a week and
+// the saved copy is used offline. If Wikipedia can't be reached, crops keep
+// the green leaf placeholder.
 
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/app_logger.dart';
+import '../utils/crop_catalog.dart';
 
-/// Our crop name -> its English Wikipedia article, picked to match the kind
-/// sold in Iloilo (same list as the website).
-const Map<String, String> kCropArticles = {
-  'Tomato': 'Tomato',
-  'Cabbage': 'Cabbage',
-  'Carrots': 'Carrot',
-  'Eggplant': 'Eggplant',
-  'Ampalaya': 'Momordica charantia', // bitter melon
-  'Pechay': 'Bok choy',
-  'Onion': 'Red onion', // PSA: red creole onion
-  'Squash': 'Calabaza', // kalabasa
-  'Okra': 'Okra',
-  'Kangkong': 'Ipomoea aquatica', // water spinach
+/// Our crop name -> its English Wikipedia article (from the crop catalog).
+final Map<String, String> kCropArticles = {
+  for (final crop in kCropCatalog) crop.name: crop.wikipedia,
 };
 
 /// One crop's sample photo and where it comes from.
@@ -96,89 +89,92 @@ class CropPhotoService {
   final http.Client _client;
 
   static const _api = 'https://en.wikipedia.org';
-  static const _storeKey = 'crop_photos_v1';
+  static const _storeKey = 'crop_photos_v2'; // one entry per article
   static const _fresh = Duration(days: 7);
   static const _retryAfter = Duration(minutes: 1);
   static const _timeout = Duration(seconds: 10);
+  static const _maxAtOnce = 2; // Wikipedia answers "429 too many" if faster
 
-  Map<String, CropPhoto>? _photos; // by article title
-  DateTime? _savedAt;
-  DateTime? _failedAt;
-  Future<Map<String, CropPhoto>>? _pending;
+  /// Saved photos by article title, with when each was saved.
+  final Map<String, CropPhoto?> _photos = {};
+  final Map<String, DateTime> _savedAt = {};
+  final Map<String, DateTime> _failedAt = {};
+  final Map<String, Future<CropPhoto?>> _pending = {};
+  bool _readSavedDone = false;
 
-  /// The sample photo for [crop] (our crop name), or null if there is none.
-  /// Never throws.
+  // A small waiting line so only [_maxAtOnce] downloads run together.
+  int _running = 0;
+  final Queue<Completer<void>> _waiting = Queue();
+
+  /// The sample photo for [crop] (our crop name), or null if there is none
+  /// or it can't be loaded now. Never throws.
   Future<CropPhoto?> photoFor(String crop) async {
     final article = kCropArticles[crop];
     if (article == null) return null;
-    return (await loadAll())[article];
-  }
+    if (!_readSavedDone) await _readSaved();
 
-  /// Every crop's photo: the copy saved on the phone while it is less than a
-  /// week old, otherwise from Wikipedia (and saved again). When Wikipedia
-  /// can't be reached, an older saved copy, or nothing. Never throws.
-  Future<Map<String, CropPhoto>> loadAll() async {
-    if (_photos == null) await _readSaved();
     final now = DateTime.now();
-    if (_photos != null && now.difference(_savedAt!) < _fresh) return _photos!;
-    if (_failedAt != null && now.difference(_failedAt!) < _retryAfter) {
-      return _photos ?? {};
+    final saved = _savedAt[article];
+    if (saved != null && now.difference(saved) < _fresh) {
+      return _photos[article];
     }
-    // If several cards ask at the same time, they all wait for one download.
-    return _pending ??= _download().whenComplete(() => _pending = null);
+    final failed = _failedAt[article];
+    if (failed != null && now.difference(failed) < _retryAfter) {
+      return _photos[article]; // an older saved copy, or null
+    }
+    // If several cards show the same crop, they share one download.
+    return _pending[article] ??= _load(article)
+        .whenComplete(() => _pending.remove(article));
   }
 
-  Future<Map<String, CropPhoto>> _download() async {
+  Future<CropPhoto?> _load(String article) async {
+    await _takeTurn();
     try {
-      final photos = await fetchFromWikipedia();
-      _photos = photos;
-      _savedAt = DateTime.now();
+      final photo = await fetchFromWikipedia(article);
+      _photos[article] = photo;
+      _savedAt[article] = DateTime.now();
       await _writeSaved();
-      return photos;
+      return photo;
     } catch (e) {
-      AppLogger.error('Loading crop photos from Wikipedia failed', e);
-      _failedAt = DateTime.now();
-      return _photos ?? {};
+      AppLogger.error('Loading the photo for $article failed', e);
+      _failedAt[article] = DateTime.now();
+      return _photos[article];
+    } finally {
+      _endTurn();
     }
   }
 
-  /// Loads every crop's photo from Wikipedia now (no saved copy). Crops
-  /// without a photo are left out.
-  Future<Map<String, CropPhoto>> fetchFromWikipedia() async {
-    final titles = kCropArticles.values.toSet();
-    final summaries = <String, Map<String, dynamic>>{};
-    await Future.wait([
-      for (final title in titles)
-        _getJson(
-          '$_api/api/rest_v1/page/summary/'
-          '${Uri.encodeComponent(title.replaceAll(' ', '_'))}?redirect=true',
-        ).then((summary) {
-          if ((summary['thumbnail'] as Map?)?['source'] != null) {
-            summaries[title] = summary;
-          }
-        }, onError: (_) {}), // one missing crop is fine
-    ]);
-    if (summaries.isEmpty) throw Exception('No crop photos from Wikipedia');
-
-    // The photo's file name, to ask for its author and license.
-    final files = <String, String>{};
-    summaries.forEach((title, summary) {
-      final original = (summary['originalimage'] as Map?)?['source'] as String?;
-      final thumb = (summary['thumbnail'] as Map)['source'] as String;
-      final file = fileNameOf(original ?? thumb);
-      if (file != null) files[title] = file;
-    });
-    final credits = await _loadCredits(files.values.toSet());
-
-    return {
-      for (final entry in summaries.entries)
-        entry.key: _toPhoto(entry.value, credits[files[entry.key]]),
-    };
+  Future<void> _takeTurn() async {
+    if (_running < _maxAtOnce) {
+      _running++;
+      return;
+    }
+    final turn = Completer<void>();
+    _waiting.add(turn);
+    await turn.future; // _endTurn hands its place to us
   }
 
-  CropPhoto _toPhoto(Map<String, dynamic> summary, _Credit? credit) {
-    final thumb = (summary['thumbnail'] as Map)['source'] as String;
+  void _endTurn() {
+    if (_waiting.isNotEmpty) {
+      _waiting.removeFirst().complete(); // the next one takes this place
+    } else {
+      _running--;
+    }
+  }
+
+  /// Loads one article's photo, description and photo credit from
+  /// Wikipedia now (no saved copy). Returns null when it has no photo.
+  Future<CropPhoto?> fetchFromWikipedia(String article) async {
+    final summary = await _getJson(
+      '$_api/api/rest_v1/page/summary/'
+      '${Uri.encodeComponent(article.replaceAll(' ', '_'))}?redirect=true',
+    );
+    final thumb = (summary['thumbnail'] as Map?)?['source'] as String?;
+    if (thumb == null) return null;
+    final original = (summary['originalimage'] as Map?)?['source'] as String?;
     final originalWidth = (summary['originalimage'] as Map?)?['width'] as int?;
+    final file = fileNameOf(original ?? thumb);
+    final credit = file == null ? null : await _loadCredit(file);
     final description = (summary['description'] as String?)?.trim();
     return CropPhoto(
       image: thumb,
@@ -192,10 +188,9 @@ class CropPhotoService {
     );
   }
 
-  /// Author and license of each photo file, in one call. If it fails the
-  /// photos still show, just without names.
-  Future<Map<String, _Credit>> _loadCredits(Set<String> files) async {
-    if (files.isEmpty) return {};
+  /// Author and license of one photo file. If it fails the photo still
+  /// shows, just without names.
+  Future<_Credit?> _loadCredit(String file) async {
     try {
       final uri = Uri.parse('$_api/w/api.php').replace(
         queryParameters: {
@@ -206,38 +201,25 @@ class CropPhotoService {
           'prop': 'imageinfo',
           'iiprop': 'extmetadata',
           'iiextmetadatafilter': 'Artist|LicenseShortName',
-          'titles': files.map((file) => 'File:$file').join('|'),
+          'titles': 'File:$file',
         },
       );
       final answer = await _getJson(uri.toString());
-      final query = answer['query'] as Map<String, dynamic>? ?? {};
-      // Wikipedia may rename the titles we asked for; map them back.
-      final renamed = {
-        for (final item in query['normalized'] as List? ?? [])
-          (item as Map)['to'] as String: item['from'] as String,
-      };
-      final credits = <String, _Credit>{};
-      for (final item in query['pages'] as List? ?? []) {
-        final page = item as Map<String, dynamic>;
-        final title = page['title'] as String?;
-        final info = page['imageinfo'] as List?;
-        if (title == null || info == null || info.isEmpty) continue;
-        final meta = (info.first as Map)['extmetadata'] as Map? ?? {};
-        final asked = (renamed[title] ?? title)
-            .replaceFirst('File:', '')
-            .replaceAll('_', ' ');
-        credits[asked] = _Credit(
-          plainText((meta['Artist'] as Map?)?['value'] as String?),
-          plainText(
-            (meta['LicenseShortName'] as Map?)?['value'] as String?,
-            max: 40,
-          ),
-        );
-      }
-      return credits;
+      final pages = (answer['query'] as Map?)?['pages'] as List? ?? [];
+      if (pages.isEmpty) return null;
+      final info = (pages.first as Map)['imageinfo'] as List?;
+      if (info == null || info.isEmpty) return null;
+      final meta = (info.first as Map)['extmetadata'] as Map? ?? {};
+      return _Credit(
+        plainText((meta['Artist'] as Map?)?['value'] as String?),
+        plainText(
+          (meta['LicenseShortName'] as Map?)?['value'] as String?,
+          max: 40,
+        ),
+      );
     } catch (e) {
-      AppLogger.error('Loading photo credits failed', e);
-      return {};
+      AppLogger.error('Loading photo credit failed', e);
+      return null;
     }
   }
 
@@ -252,16 +234,18 @@ class CropPhotoService {
   }
 
   Future<void> _readSaved() async {
+    _readSavedDone = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_storeKey);
       if (raw == null) return;
       final saved = jsonDecode(raw) as Map<String, dynamic>;
-      _savedAt = DateTime.parse(saved['savedAt'] as String);
-      _photos = {
-        for (final entry in (saved['photos'] as Map<String, dynamic>).entries)
-          entry.key: CropPhoto.fromMap(entry.value as Map<String, dynamic>),
-      };
+      for (final entry in saved.entries) {
+        final item = entry.value as Map<String, dynamic>;
+        _savedAt[entry.key] = DateTime.parse(item['savedAt'] as String);
+        final photo = item['photo'] as Map<String, dynamic>?;
+        _photos[entry.key] = photo == null ? null : CropPhoto.fromMap(photo);
+      }
     } catch (e) {
       AppLogger.error('Reading saved crop photos failed', e); // not fatal
     }
@@ -273,11 +257,11 @@ class CropPhotoService {
       await prefs.setString(
         _storeKey,
         jsonEncode({
-          'savedAt': _savedAt!.toIso8601String(),
-          'photos': {
-            for (final entry in _photos!.entries)
-              entry.key: entry.value.toMap(),
-          },
+          for (final entry in _savedAt.entries)
+            entry.key: {
+              'savedAt': entry.value.toIso8601String(),
+              'photo': _photos[entry.key]?.toMap(),
+            },
         }),
       );
     } catch (e) {

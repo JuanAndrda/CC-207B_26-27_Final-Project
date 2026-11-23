@@ -47,7 +47,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   String? _error;
 
   String _search = '';
-  String? _crop; // null = all crops
+  CropCategory? _category; // null = all categories
+  String? _crop; // null = all crops (of the category)
   String? _town; // null = all towns
   double? _minPrice;
   double? _maxPrice;
@@ -97,6 +98,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   bool get _isFiltered =>
       _search.isNotEmpty ||
+      _category != null ||
       _crop != null ||
       _town != null ||
       _minPrice != null ||
@@ -107,6 +109,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     _maxController.clear();
     _update(() {
       _search = '';
+      _category = null;
       _crop = null;
       _town = null;
       _minPrice = null;
@@ -117,6 +120,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   /// The loaded crops after search and price filter, in the chosen order.
   List<Listing> get _visible {
     final list = _all.where((listing) {
+      // A category without a chosen crop shows every crop of that category.
+      if (_category != null && cropInfo(listing.crop)?.category != _category) {
+        return false;
+      }
       if (_minPrice != null && listing.price < _minPrice!) return false;
       if (_maxPrice != null && listing.price > _maxPrice!) return false;
       return matchesSearch(_search, [
@@ -173,6 +180,14 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             ),
             filters: [
               FilterDropdown(
+                value: _crop,
+                allLabel: 'All crops',
+                options: _category == null ? kCrops : cropsIn(_category!),
+                icon: Icons.eco_outlined,
+                width: 168,
+                onChanged: (crop) => _update(() => _crop = crop, reload: true),
+              ),
+              FilterDropdown(
                 value: _town,
                 allLabel: 'All towns',
                 options: kTowns,
@@ -195,10 +210,15 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             onClearAll: _isFiltered ? _clearAll : null,
           ),
           const SizedBox(height: 10),
-          ChipFilterRow(
-            options: kCrops,
-            selected: _crop,
-            onSelected: (crop) => _update(() => _crop = crop, reload: true),
+          CategoryChipRow(
+            selected: _category,
+            onSelected: (category) => _update(() {
+              _category = category;
+              // A crop from another category would hide everything.
+              if (_crop != null && cropInfo(_crop!)?.category != category) {
+                _crop = null;
+              }
+            }, reload: true),
           ),
         ],
       ),

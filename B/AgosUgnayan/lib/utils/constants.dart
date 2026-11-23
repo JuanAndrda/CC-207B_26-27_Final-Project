@@ -1,34 +1,20 @@
 // Fixed lists used by dropdowns, filters and the AI assistant: the crops we
 // support, the units farmers sell in, and the towns of Iloilo Province.
-// To add a crop or town, add one line to the right list.
+// To add a town, add one line to the list. Crops live in crop_catalog.dart.
 
-/// The crops farmers can list. Same 10 crops as the original web app.
-const List<String> kCrops = [
-  'Tomato',
-  'Cabbage',
-  'Carrots',
-  'Eggplant',
-  'Ampalaya',
-  'Pechay',
-  'Onion',
-  'Squash',
-  'Okra',
-  'Kangkong',
-];
+import 'crop_catalog.dart';
+
+export 'crop_catalog.dart';
+
+/// The crops farmers can list (all 71 from the crop catalog, by category).
+/// Edit the crops in lib/utils/crop_catalog.dart.
+final List<String> kCrops = [for (final crop in kCropCatalog) crop.name];
 
 /// Local (Hiligaynon / Filipino) names, so the AI assistant understands notes
 /// like "50 kilos kamatis". Key = local word, value = crop in [kCrops].
-const Map<String, String> kLocalCropNames = {
-  'kamatis': 'Tomato',
-  'repolyo': 'Cabbage',
-  'karot': 'Carrots',
-  'talong': 'Eggplant',
-  'amargoso': 'Ampalaya',
-  'petsay': 'Pechay',
-  'sibuyas': 'Onion',
-  'kalabasa': 'Squash',
-  'okra': 'Okra',
-  'kangkong': 'Kangkong',
+final Map<String, String> kLocalCropNames = {
+  for (final crop in kCropCatalog)
+    for (final local in crop.localNames) local: crop.name,
 };
 
 /// Units a farmer can sell in.

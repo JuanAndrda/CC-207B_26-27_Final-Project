@@ -9,6 +9,7 @@ import '../utils/constants.dart';
 import '../utils/format.dart';
 import '../utils/theme.dart';
 import '../widgets/crop_image.dart';
+import '../widgets/notice_box.dart';
 import '../widgets/page_header.dart';
 import '../widgets/responsive_body.dart';
 
@@ -18,10 +19,15 @@ class PriceDetailScreen extends StatelessWidget {
     super.key,
     required this.crop,
     required this.history,
+    this.isOlder = false,
   });
 
   final String crop;
   final List<PriceRecord> history;
+
+  /// True when this crop's newest price is from before the newest month
+  /// of all crops. The page then says so, so it isn't read as current.
+  final bool isOlder;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +49,16 @@ class PriceDetailScreen extends StatelessWidget {
               title: crop,
               lead: 'Reference farmgate price per kg.',
             ),
+            if (isOlder) ...[
+              const SizedBox(height: 10),
+              NoticeBox(
+                kind: NoticeKind.warning,
+                message:
+                    'Older price: the newest PSA price for $crop is from '
+                    '${formatMonthKey(latest.month)}. Newer months have no '
+                    'price for it yet.',
+              ),
+            ],
             const SizedBox(height: AppSizes.fieldGap),
             // Three tiles: this month, lowest and highest (website .tiles).
             Row(

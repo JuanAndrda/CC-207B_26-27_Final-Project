@@ -84,7 +84,7 @@ void main() {
   });
 
   test('every crop has a PSA source, like the website', () {
-    expect(kPsaFarmgate.length, 10);
+    expect(kPsaFarmgate.length, 10); // the 10 crops PSA tables were mapped for
     expect(kPsaFarmgate['Ampalaya']!.name, 'Ampalaya fruit [Bitter gourd]');
   });
 

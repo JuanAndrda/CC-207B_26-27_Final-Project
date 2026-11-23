@@ -20,6 +20,7 @@ import '../utils/validators.dart';
 import '../widgets/ai_assistant_box.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/date_field.dart';
+import '../widgets/crop_picker.dart';
 import '../widgets/dropdown_field.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/loading_button.dart';
@@ -159,8 +160,11 @@ class _CropFormScreenState extends State<CropFormScreen> {
     }
     final latest = PriceService.latestFor(_crop!, _prices);
     if (latest == null) return 'PSA has no farmgate price for this crop yet.';
+    final older = PriceService.isOlderPrice(_crop!, _prices)
+        ? ', an older price'
+        : '';
     return 'For reference: PSA farmgate average, Iloilo Province, is '
-        '${formatPeso(latest.price)}/kg (${formatMonthKey(latest.month)}).';
+        '${formatPeso(latest.price)}/kg (${formatMonthKey(latest.month)}$older).';
   }
 
   /// Required, a number above 0, and at most 100,000 (like the website).
@@ -225,10 +229,8 @@ class _CropFormScreenState extends State<CropFormScreen> {
                 LabeledField(
                   label: 'Crop',
                   isRequired: true,
-                  child: DropdownField(
-                    label: null,
-                    hint: 'Choose a crop',
-                    items: kCrops,
+                  // 71 crops: a searchable list grouped by category.
+                  child: CropPickerField(
                     value: _crop,
                     onChanged: (value) => setState(() => _crop = value),
                   ),

@@ -15,6 +15,7 @@ import '../utils/theme.dart';
 import '../utils/validators.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/date_field.dart';
+import '../widgets/crop_picker.dart';
 import '../widgets/dropdown_field.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/loading_button.dart';
@@ -148,10 +149,8 @@ class _RequestFormScreenState extends State<RequestFormScreen> {
                 LabeledField(
                   label: 'Crop',
                   isRequired: true,
-                  child: DropdownField(
-                    label: null,
-                    hint: 'Choose a crop',
-                    items: kCrops,
+                  // 71 crops: a searchable list grouped by category.
+                  child: CropPickerField(
                     value: _crop,
                     onChanged: (value) => setState(() => _crop = value),
                   ),

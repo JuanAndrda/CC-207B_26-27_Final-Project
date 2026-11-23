@@ -12,7 +12,8 @@ import '../utils/format.dart';
 import '../utils/snackbars.dart';
 import '../utils/theme.dart';
 import '../utils/validators.dart';
-import '../widgets/dropdown_field.dart';
+import '../widgets/crop_picker.dart';
+import '../widgets/labeled_field.dart';
 import '../widgets/loading_button.dart';
 import '../widgets/page_header.dart';
 import '../widgets/responsive_body.dart';
@@ -86,11 +87,13 @@ class _AdminPriceFormScreenState extends State<AdminPriceFormScreen> {
                     '(PSA OpenSTAT).',
               ),
               const SizedBox(height: AppSizes.sectionGap),
-              DropdownField(
+              LabeledField(
                 label: 'Crop',
-                items: kCrops,
-                value: _crop,
-                onChanged: (value) => setState(() => _crop = value),
+                isRequired: true,
+                child: CropPickerField(
+                  value: _crop,
+                  onChanged: (value) => setState(() => _crop = value),
+                ),
               ),
               const SizedBox(height: AppSizes.fieldGap),
               // Shows "Nov 2026" but saves "2026-11".

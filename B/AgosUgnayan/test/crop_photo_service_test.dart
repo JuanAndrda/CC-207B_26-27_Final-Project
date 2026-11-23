@@ -15,7 +15,7 @@ const thumb =
 
 void main() {
   test('every crop has a Wikipedia article, like the website', () {
-    expect(kCropArticles.length, 10);
+    expect(kCropArticles.length, 71);
     expect(kCropArticles['Pechay'], 'Bok choy');
   });
 
@@ -98,18 +98,24 @@ void main() {
       );
     });
 
-    final photos = await CropPhotoService(client: client).fetchFromWikipedia();
-    expect(photos.keys, ['Tomato']);
-    final tomato = photos['Tomato']!;
+    final service = CropPhotoService(client: client);
+    final tomato = (await service.fetchFromWikipedia('Tomato'))!;
     expect(tomato.description, 'Edible berry');
     expect(tomato.author, 'Jane Doe');
     expect(tomato.largeImage, contains('/960px-'));
   });
 
-  test('fetchFromWikipedia fails when no photo loads at all', () async {
+  test('an article without a photo gives null', () async {
+    final client = MockClient((_) async => http.Response('{}', 200));
+    final photo = await CropPhotoService(client: client)
+        .fetchFromWikipedia('Calabaza');
+    expect(photo, isNull);
+  });
+
+  test('fetchFromWikipedia fails when Wikipedia is down', () async {
     final client = MockClient((_) async => http.Response('down', 503));
     expect(
-      () => CropPhotoService(client: client).fetchFromWikipedia(),
+      () => CropPhotoService(client: client).fetchFromWikipedia('Tomato'),
       throwsException,
     );
   });
