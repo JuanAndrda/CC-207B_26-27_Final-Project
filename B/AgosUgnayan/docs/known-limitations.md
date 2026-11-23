@@ -42,6 +42,12 @@
     - the buyer assistant shows the facts only.
   - Usage can be checked in the Firebase console (AI Logic).
 
+- **Buyer assistant general answers** (food, storage, small talk) come from Gemini's general knowledge.
+  - They can be wrong, and they are labeled "General answer, not from AgosUgnayan data".
+  - It remembers the last 6 messages of the current chat only.
+  - 40 AI questions per session; after that, prices, search and totals still work without AI.
+- **Gemini per-minute limit**: in our tests about 35 calls in 9 minutes caused one "quota exceeded" answer. A buyer asking every few seconds may briefly see "The assistant is busy right now"; app facts still show.
+
 ## Free-tier limits that matter
 
 We only use free services. A class-sized test stays far below these limits, but they are good to know:

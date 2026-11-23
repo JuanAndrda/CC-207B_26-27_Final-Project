@@ -181,3 +181,13 @@ Checked on the emulator (with the test AI) at 375 and 1280 px:
 - price check and offer total.
 
 The fallback is covered by a widget test.
+
+## Update (Nov 23): hybrid assistant
+
+| Heuristic | Change | File / widget |
+|---|---|---|
+| 1 Visibility of system status | Every answer says where it comes from: "From AgosUgnayan", "AI suggestion", or "General answer, not from AgosUgnayan data" | `widgets/assistant_messages.dart` |
+| 2 Match with the real world | Typos are understood ("hteprices", "prcie"); answers come in the buyer's language (English, Filipino or Hiligaynon); small talk is answered | `utils/assistant_facts.dart` |
+| 5 Error prevention | App numbers only come from the app; with no data the AI must say so instead of guessing | `services/buyer_assistant_service.dart` |
+| 6 Recognition rather than recall | "Top 5 vegetable prices", "cheapest fruit" and "compare tomato and cabbage" give ready lists; the welcome text says what to ask | `utils/assistant_rankings.dart` |
+| 9 Error recovery | Unclear questions get a friendly answer instead of "I don't have that" | `services/buyer_assistant_service.dart` |

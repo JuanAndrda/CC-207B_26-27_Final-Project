@@ -155,3 +155,38 @@ No user ids, emails, phone numbers or other buyers' data are sent. Farmer-writte
 | Find the cheapest tomato (Market) | 1 listing with stock left: Tomato ₱45/kg, 50 kg, Pedro Santos, Leon |
 | What does this offer total? (chat, 3 kg Pechay at ₱54.40) | Total ₱163.20; PSA ₱65/kg, −₱10.60 (−16.3%) |
 | Weather question | How-to fallback: "I don't have that." |
+
+### Update (Nov 23): hybrid assistant (app help + general chat)
+
+**Why.** Juan tested the live site. "What is this website" and "out of all hteprices give me top 3" got "I don't have that." Juan chose a hybrid design:
+
+1. **AgosUgnayan help (main job).** Prices, listings, totals, orders and how-to.
+   - Every number comes from the app as FACTS. Rankings, comparisons, "what changed", "about the app" and refusals are answered by the app itself, without AI.
+   - The answer is labeled "From AgosUgnayan" or "AI suggestion", with the "Facts from AgosUgnayan" box.
+2. **General chat.** Food, storage, word meanings, small talk and jokes are answered by Gemini from general knowledge.
+   - Labeled "General answer, not from AgosUgnayan data".
+   - It sees the last 6 chat messages, so "explain it in simpler words" works.
+   - A mixed question ("is 45 fair for tomato and how do I store it?") shows both labels and the Facts box.
+
+**Strict accuracy rules** (prompt and code):
+- AgosUgnayan data (listings, asking prices, stock, farmers, orders, PSA prices and months) may only come from the FACTS block.
+- An empty block is sent as "none found", so the AI must say e.g. "I can't find any mango listings right now" and never estimate a peso value.
+- No typical prices from general knowledge, no live information (weather, news), no medical diagnosis (basic food facts plus "ask a doctor").
+- The app decides the reply language (English, Filipino or Hiligaynon) from the question's words.
+
+**Typos and unclear questions.** Fuzzy matching fixes typos of key words ("hteprices", "prcie", "tomatoe"). If the app still can't tell what was asked, Gemini sorts the question into one of our answer kinds (one call at most); otherwise it becomes general chat.
+
+**Before and after (real Gemini, Nov 23, 2026):**
+
+| Question | Before | After |
+|---|---|---|
+| what is this website | "I don't have that." | The app explains AgosUgnayan: a free market for Iloilo farmers and buyers, its 5 main buyer features and what the assistant can do (no AI call) |
+| out of all hteprices give me top 3 | "I don't have that." | Facts: 1. Lettuce ₱220.00/kg, 2. Mango ₱70.00/kg, 3. Pechay ₱65.00/kg (Jun 2026); 1 older price not ranked; "Showing the highest prices. Say "cheapest" for the lowest." |
+| explain this app | A thin how-to paragraph | The same "about" answer with the step list |
+
+**More real samples:**
+- "how do I properly store tomatoes?" → "To keep your tomatoes fresh, store unripe ones at room temperature away from direct sunlight until they are ripe. Once they are fully ripe, you can keep them on the counter… or place them in the refrigerator if you need them to last longer." (general label)
+- "what is the current price of mango in the Market?" (no mango listed) → "I found no mango with stock left right now…" (the app, no invented price)
+- "how much is rice?" → "I don't have a PSA price record for that crop. AgosUgnayan has PSA prices for 71 crops; see the Prices tab."
+- "will tomato prices go up next week?" → "I cannot look up live information or predict future prices. The PSA price for tomatoes is ₱38.81 per kilogram for June 2026…"
+- "pila ang kamatis sa Leon?" → answered in Hiligaynon from the real listing: ₱45.00 per kilo, 50 kg available.
