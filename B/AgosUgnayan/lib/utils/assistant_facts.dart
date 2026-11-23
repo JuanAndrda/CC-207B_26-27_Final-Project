@@ -521,6 +521,10 @@ String cleanUntrusted(String text, {int max = 120}) {
   return flat.length <= max ? flat.trim() : '${flat.substring(0, max).trim()}…';
 }
 
+/// 20.0 becomes 20 (so the AI writes "20 kg", not "20.0 kg"); 12.5 stays.
+num wholeIfWhole(double value) =>
+    value == value.roundToDouble() ? value.toInt() : value;
+
 /// A listing as facts for the AI: only what the Market already shows.
 /// No ids, no emails, no phone numbers.
 Map<String, dynamic> listingFacts(Listing l, {DateTime? now}) => {
@@ -528,7 +532,7 @@ Map<String, dynamic> listingFacts(Listing l, {DateTime? now}) => {
   'crop': l.crop,
   'pricePerUnit': l.price,
   'unit': l.unit,
-  'available': l.availableAt(now ?? DateTime.now()),
+  'available': wholeIfWhole(l.availableAt(now ?? DateTime.now())),
   'town': l.town,
   'farmer': cleanUntrusted(l.farmerName, max: 40),
 };

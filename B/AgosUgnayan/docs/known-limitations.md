@@ -9,7 +9,7 @@
 - **Admin** can only add prices. Managing users and removing posts is done in the Firebase console.
 - The **AI assistant** needs the real Firebase project with AI Logic turned on; it falls back to the manual form in the emulator.
 - **App Check** is set to "Unenforced (monitoring only)" for Firebase AI Logic, because the app does not use App Check yet. Google will turn enforcement on automatically on January 21, 2027; after that the AI only works if we add App Check (reCAPTCHA for web) or unenforce it again.
-- The **Gemini model** can be busy or retired by Google. When it does not answer within 20 seconds the farmer fills in the form by hand. To switch models, change `AiService.modelName` (we moved from `gemini-2.5-flash`, retired for new projects, to `gemini-3.5-flash`).
+- The **Gemini model** can be busy or retired by Google. When it does not answer within 20 seconds the farmer fills in the form by hand. To switch models, change `AiService.modelName` (we moved from `gemini-2.5-flash`, retired for new projects, to `gemini-3.5-flash`, then to `gemini-3.5-flash-lite`).
 - **Crop catalog**: 71 crops in 6 categories live in `lib/utils/crop_catalog.dart`. Their PSA reference prices (from the team, mostly June 2026) are used whenever the database has no price for that crop and month. Prices older than the newest month are labeled "Older price" and keep their real month (e.g. Leeks, January 2025). The "Get latest PSA prices" import only knows the PSA tables of the first 10 crops; the other 61 use the catalog until an admin adds newer prices.
 - **Banana blossom and Camote tops** share the Banana and Sweet potato photos, because Wikipedia has no separate photo for them.
 - **Expired requests** are worked out from the date on the phone each time (the free Firebase plan has no server to change data at midnight). Reminders are inside the app only (Home notice, badge, "Expires tomorrow"); push or email reminders would need Cloud Functions on the paid Blaze plan.
@@ -35,7 +35,12 @@
   - Trends only use the 12 months of PSA prices we have and do not predict prices.
   - It doesn't work in the emulator unless built with `FAKE_AI=true`.
 
-- **Gemini free tier per model**: the farmer features (Fill in for me, Generate crop description) use `gemini-3.5-flash`. Its free tier allows only **20 requests per day for the whole project**. During a class demo they may answer "busy"; the forms keep working by hand. The buyer assistant uses `gemini-3.5-flash-lite`, which has its own free quota and answers faster. Moving the farmer features to Lite too would need a re-test of their outputs.
+- **Gemini free tier is per model and per project**:
+  - `gemini-3.5-flash` allows only **20 requests per day for the whole project**, which is why all AI features now use `gemini-3.5-flash-lite`.
+  - Lite's daily free limit is not shown in the app. If it is reached, every AI feature shows its friendly "busy" message and the app keeps working without AI:
+    - the farmer fills in the form by hand;
+    - the buyer assistant shows the facts only.
+  - Usage can be checked in the Firebase console (AI Logic).
 
 ## Free-tier limits that matter
 

@@ -11,6 +11,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:agosugnayan/models/ai_listing_suggestion.dart';
 import 'package:agosugnayan/models/assistant.dart';
 import 'package:agosugnayan/models/listing.dart';
 import 'package:agosugnayan/models/order.dart';
@@ -18,7 +19,9 @@ import 'package:agosugnayan/models/price_record.dart';
 import 'package:agosugnayan/services/ai_service.dart';
 import 'package:agosugnayan/services/buyer_assistant_service.dart';
 import 'package:agosugnayan/services/listing_service.dart';
+import 'package:agosugnayan/utils/ai_text.dart';
 import 'package:agosugnayan/utils/assistant_facts.dart';
+import 'package:agosugnayan/utils/privacy_filter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Real Gemini over the Firebase AI Logic REST endpoint, with the same
@@ -34,7 +37,7 @@ class RestGemini implements AssistantAi {
   Future<String> generate(String prompt, {bool json = false}) async {
     final url = Uri.parse(
       'https://firebasevertexai.googleapis.com/v1beta/projects/'
-      'agosugnayan-cc207b/models/${GeminiAssistantAi.modelName}:generateContent'
+      'agosugnayan-cc207b/models/${AiService.modelName}:generateContent'
       '?key=$key',
     );
     final client = HttpClient();
@@ -287,4 +290,77 @@ void main() {
     File(Platform.environment['STRESS_OUT'] ?? 'stress.json')
         .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(results));
   }, timeout: const Timeout(Duration(minutes: 15)));
+
+  // The farmer features: "Fill in for me" and "Generate crop description",
+  // with the app's real prompts and the same checks the app runs.
+  test('stress test real Gemini: farmer features', () async {
+    final key = Platform.environment['GEMINI_KEY'];
+    final appId = Platform.environment['GEMINI_APP_ID'];
+    if (key == null || appId == null) {
+      markTestSkipped('Set GEMINI_KEY and GEMINI_APP_ID to run.');
+      return;
+    }
+    final ai = RestGemini(key, appId);
+    final notes = [
+      '50 kilos kamatis, 45 pesos per kilo, bag-o lang ginpupo',
+      'Tomato 30 kg at 42 per kg, harvested yesterday',
+      'May 20 kilo ako na pechay, 54.40 ang kilo',
+      '3 sako sibuyas, 2500 kada sako',
+      'sitaw 15 bundles 25 each',
+      'durian 10 kg 150',
+      'I have some patola, call me 09171234567',
+      'ampalaya',
+    ];
+    final crops = [
+      'Lettuce',
+      'Sitao',
+      'Patola',
+      'Camachile',
+      'Leeks',
+      'Tomato',
+      'Banana blossom',
+      'Pechay',
+    ];
+    final results = <Map<String, dynamic>>[];
+    for (final note in notes) {
+      final watch = Stopwatch()..start();
+      Map<String, dynamic> row = {'note': note};
+      try {
+        final text = await ai.generate(
+          AiService.listingPrompt(removeContactDetails(note)),
+          json: true,
+        );
+        final s = AiListingSuggestion.fromJsonText(text);
+        row.addAll({
+          'raw': text,
+          'crop': s.crop,
+          'quantity': s.quantity,
+          'unit': s.unit,
+          'price': s.price,
+          'description': s.description,
+        });
+      } catch (e) {
+        row['error'] = '$e';
+      }
+      row['ms'] = watch.elapsedMilliseconds;
+      results.add(row);
+      await Future<void>.delayed(const Duration(milliseconds: 3500));
+    }
+    for (final crop in crops) {
+      final watch = Stopwatch()..start();
+      Map<String, dynamic> row = {'crop': crop};
+      try {
+        final raw = await ai.generate(AiService.describePrompt(crop, 'crop'));
+        final clean = cleanCropDescription(raw);
+        row.addAll({'raw': raw, 'clean': clean, 'length': clean?.length});
+      } catch (e) {
+        row['error'] = '$e';
+      }
+      row['ms'] = watch.elapsedMilliseconds;
+      results.add(row);
+      await Future<void>.delayed(const Duration(milliseconds: 3500));
+    }
+    File(Platform.environment['FARMER_OUT'] ?? 'farmer.json')
+        .writeAsStringSync(const JsonEncoder.withIndent('  ').convert(results));
+  }, timeout: const Timeout(Duration(minutes: 10)));
 }

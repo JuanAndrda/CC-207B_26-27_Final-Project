@@ -17,6 +17,15 @@ void main() {
     expect(s.description, 'Fresh tomatoes.');
   });
 
+  test('reads an answer sent as a list with one object (Lite model)', () {
+    final s = AiListingSuggestion.fromJsonText(
+      '[{"crop":"pechay","quantity":20,"unit":"kg","price":54.4}]',
+    );
+    expect(s.crop, 'Pechay');
+    expect(s.quantity, 20);
+    expect(s.price, 54.4);
+  });
+
   test('turns a local crop name into our crop name', () {
     final s = AiListingSuggestion.fromJsonText('{"crop": "kamatis"}');
     expect(s.crop, 'Tomato');

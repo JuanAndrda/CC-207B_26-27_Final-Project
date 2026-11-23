@@ -8,7 +8,7 @@ Farmers write in English, Hiligaynon, Filipino or a mix, with spelling variation
 
 ## Service and model
 - `firebase_ai` package (Firebase AI Logic) with the Gemini Developer API.
-- Model: `gemini-3.5-flash` (one constant in `lib/services/ai_service.dart`, `AiService.modelName`).
+- Model: `gemini-3.5-flash-lite` with minimal "thinking", for all three AI features (one constant in `lib/services/ai_service.dart`, `AiService.modelName`). We moved from `gemini-3.5-flash` on Nov 23, 2026: on the free tier that model allows only 20 requests per day for the whole project, and its "thinking" made answers slow and cut off. Before switching, we re-tested Lite with 8 farmer notes and 8 crop descriptions (`tool/assistant_stress_test.dart`). Its quality was as good, so there is no fallback to the other model, which also saves that model's quota.
 - No API key in the app: Firebase AI Logic holds it on Google's side.
 - `temperature: 0` and `responseMimeType: application/json` so the answer is steady and machine-readable.
 
@@ -59,7 +59,18 @@ The form is always visible and works without the AI, so the farmer is never stuc
 
 **Failure and fallback.** Loading spinner on the button ("Writing a description…"), 20-second timeout. If it fails: "The AI could not write a description right now. You can write your own, or try again later." The form still works.
 
-**Real sample outputs** (`gemini-3.5-flash`, Nov 23, 2026):
+**Re-test with `gemini-3.5-flash-lite`** (Nov 23, 2026): all 8 descriptions were 168 to 300 characters, with no prices or health claims, in about 2 seconds each. Example for Patola: "Patola is a popular green gourd with a long, ridged body and soft, sponge-like flesh inside. In the Philippines, it is commonly sliced and cooked in comforting soups like misua or added to vegetable stews. Store fresh patola unwashed in a paper bag inside the refrigerator to keep it crisp."
+
+Fill in for me read all 8 notes correctly:
+- "50 kilos kamatis, 45 pesos per kilo, bag-o lang ginpupo" → Tomato, 50 kg, ₱45, "Newly harvested."
+- "3 sako sibuyas, 2500 kada sako" → Onion, 3 sack, ₱2,500
+- "May 20 kilo ako na pechay, 54.40 ang kilo" → Pechay, 20 kg, ₱54.40
+
+The test also found two problems, now fixed:
+- Lite once answered with a JSON list; the app now reads that too.
+- It invented "freshly harvested"; the prompt now asks for a description only when the note mentions quality or harvest.
+
+**Earlier sample outputs** (`gemini-3.5-flash`, Nov 23, 2026):
 
 | Crop | Output |
 |---|---|
@@ -85,7 +96,7 @@ Design: `docs/buyer-ai-assistant-design.md`. Code: `lib/services/buyer_assistant
 
 It is read-only: it can only open a listing or the Market.
 
-**Model.** `gemini-3.5-flash-lite` through Firebase AI Logic (Gemini Developer API free tier), with minimal "thinking". There is no API key in the app.
+**Model.** `gemini-3.5-flash-lite` through Firebase AI Logic (Gemini Developer API free tier), with minimal "thinking". It is the same `AiService.modelName` as the farmer features. There is no API key in the app.
 
 We chose it after a stress test with real Gemini (`tool/assistant_stress_test.dart`, 33 questions; no accounts or data used):
 - With `gemini-3.5-flash`, its "thinking" used up the 300-token answer budget, so answers were cut off mid-sentence and took 10-40 seconds.

@@ -18,8 +18,18 @@ import '../utils/privacy_filter.dart';
 
 /// Asks Gemini to read a farmer's note and suggest listing details.
 class AiService {
-  /// The Gemini model to use. If Google retires it, change only this line.
-  static const String modelName = 'gemini-3.5-flash';
+  /// The Gemini model for ALL our AI features (farmer assistant, crop
+  /// descriptions, buyer assistant). If Google retires it, change only
+  /// this line. We use Lite: on the free tier gemini-3.5-flash allows only
+  /// 20 requests a day for the whole project, and its "thinking" made
+  /// answers slow and cut off. Lite answered in about 2 seconds in our
+  /// tests (tool/assistant_stress_test.dart).
+  static const String modelName = 'gemini-3.5-flash-lite';
+
+  /// Little "thinking": enough for our short tasks, and fast.
+  static final ThinkingConfig thinking = ThinkingConfig.withThinkingLevel(
+    ThinkingLevel.minimal,
+  );
 
   /// How long we wait before giving up and letting the farmer type manually.
   static const Duration timeout = Duration(seconds: 20);
@@ -37,10 +47,11 @@ class AiService {
         generationConfig: GenerationConfig(
           responseMimeType: 'application/json',
           temperature: 0, // same note -> same answer
+          thinkingConfig: thinking,
         ),
       );
       final response = await model
-          .generateContent([Content.text(_buildPrompt(safeNote))])
+          .generateContent([Content.text(listingPrompt(safeNote))])
           .timeout(timeout);
 
       final text = response.text;
@@ -75,10 +86,13 @@ class AiService {
     try {
       final model = FirebaseAI.googleAI().generativeModel(
         model: modelName,
-        generationConfig: GenerationConfig(temperature: 0.4),
+        generationConfig: GenerationConfig(
+          temperature: 0.4,
+          thinkingConfig: thinking,
+        ),
       );
       final response = await model
-          .generateContent([Content.text(_describePrompt(crop, category))])
+          .generateContent([Content.text(describePrompt(crop, category))])
           .timeout(timeout);
       final text = cleanCropDescription(response.text);
       if (text == null) throw const AppException(_describeFallback);
@@ -99,7 +113,7 @@ class AiService {
 
   /// Instructions for the crop description. The rules keep it short,
   /// simple and honest (no prices, no health claims, nothing about the farm).
-  String _describePrompt(String crop, String category) =>
+  static String describePrompt(String crop, String category) =>
       '''
 Write a short description of the crop "$crop" ($category) for a farmer's
 listing in an online market in Iloilo, Philippines. Buyers will read it.
@@ -116,7 +130,7 @@ claims, and nothing about this farmer's farm, harvest or quality.
 
   /// The instructions we give Gemini. The rules stop it from guessing:
   /// anything not in the note must be null.
-  String _buildPrompt(String note) {
+  static String listingPrompt(String note) {
     final localNames = kLocalCropNames.entries
         .map((e) => '${e.key} = ${e.value}')
         .join(', ');
@@ -127,8 +141,9 @@ Read the farmer's note (English, Hiligaynon or Filipino) and return JSON with:
 - "quantity": a number.
 - "unit": one of ${kUnits.join(', ')} ("kilo" or "kilos" means kg, "sako" means sack).
 - "price": the asking price per unit in pesos, a number.
-- "description": one short English sentence for buyers about quality or harvest.
-Rules: use null for anything the note does not say. Never invent a price.
+- "description": one short English sentence for buyers about quality or harvest, ONLY if the note says something about it (for example "fresh", "bag-o lang ginpupo", "harvested yesterday"); otherwise null.
+Return one JSON object (not a list).
+Rules: use null for anything the note does not say. Never invent a price, quantity or freshness.
 Farmer's note: """$note"""
 ''';
   }

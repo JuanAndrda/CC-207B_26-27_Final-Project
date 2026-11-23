@@ -43,7 +43,7 @@ The app looks up the facts first, then sends only:
 
 ## Free tier limits
 
-- Gemini free tier through the existing Firebase AI Logic (`gemini-3.5-flash`, already used by the farmer assistant). No new paid service and no new packages.
+- Gemini free tier through the existing Firebase AI Logic (`gemini-3.5-flash-lite`, the same model as the farmer features: `AiService.modelName`). No new paid service and no new packages.
 - **Limits in the app:**
   - one question at a time, then 3 seconds before the next;
   - at most 20 questions per session;

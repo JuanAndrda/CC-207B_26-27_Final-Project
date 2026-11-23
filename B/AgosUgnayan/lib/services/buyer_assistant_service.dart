@@ -28,22 +28,17 @@ abstract class AssistantAi {
 
 /// Gemini (free tier) through Firebase AI Logic, like the farmer assistant.
 class GeminiAssistantAi implements AssistantAi {
-  /// The buyer assistant uses the Lite model: in our tests it answered in
-  /// about 2 seconds, and its free daily quota is separate from the model
-  /// the farmer features use (that one allows only 20 requests a day).
-  static const String modelName = 'gemini-3.5-flash-lite';
-
   @override
   Future<String> generate(String prompt, {bool json = false}) async {
     final model = FirebaseAI.googleAI().generativeModel(
-      model: modelName,
+      model: AiService.modelName, // one model for all AI features
       generationConfig: GenerationConfig(
         temperature: json ? 0 : 0.3,
         maxOutputTokens: 300, // short answers keep us in the free tier
         responseMimeType: json ? 'application/json' : null,
         // Little "thinking": thinking used up the answer's word budget
         // and made answers slow and cut off in our tests.
-        thinkingConfig: ThinkingConfig.withThinkingLevel(ThinkingLevel.minimal),
+        thinkingConfig: AiService.thinking,
       ),
     );
     final response = await model
@@ -335,11 +330,13 @@ class BuyerAssistantService {
             ...compare.facts.where((r) => r.label != 'Asking price'),
           ],
           forAi: {
-            'buyerAsksFor': qty, // not the farmer's stock
+            'buyerAsksFor': wholeIfWhole(qty), // not the farmer's stock
             'unit': unit,
             'pricePerUnit': price,
             'total': rows.firstWhere((r) => r.label == 'Total').value,
-            'availableNow': ?available,
+            'availableNow': ?(available == null
+                ? null
+                : wholeIfWhole(available)),
             'enoughStock': enough,
             'warnings': [
               if (!enough)
@@ -364,7 +361,7 @@ class BuyerAssistantService {
           forAi: {
             'order': {
               'crop': order.crop,
-              'quantity': order.qty,
+              'quantity': wholeIfWhole(order.qty),
               'unit': order.unit,
               'pricePerUnit': order.price,
               'total': order.total,

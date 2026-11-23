@@ -452,6 +452,13 @@ void main() {
       expect(ai.textCalls, 0);
     });
 
+    test('whole amounts are sent as 20, not 20.0', () {
+      expect(wholeIfWhole(20.0), 20);
+      expect(wholeIfWhole(12.5), 12.5);
+      final facts = listingFacts(listing('a', 'Pechay', 54.4), now: now);
+      expect(factsJson(facts), contains('"available":20,'));
+    });
+
     test('answers are cut to 5 sentences', () {
       const long = 'One. Two. Three. Four. Five. Six. Seven.';
       expect(limitSentences(long), 'One. Two. Three. Four. Five.');

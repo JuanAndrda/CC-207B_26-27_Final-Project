@@ -38,7 +38,11 @@ class AiListingSuggestion {
   factory AiListingSuggestion.fromJsonText(String text) {
     // Models sometimes wrap JSON in ```json ... ```, so remove that first.
     final cleaned = text.replaceAll('```json', '').replaceAll('```', '').trim();
-    final data = jsonDecode(cleaned) as Map<String, dynamic>;
+    final decoded = jsonDecode(cleaned);
+    // The Lite model sometimes answers with a list holding one object.
+    final data = decoded is List && decoded.isNotEmpty
+        ? decoded.first as Map<String, dynamic>
+        : decoded as Map<String, dynamic>;
 
     return AiListingSuggestion(
       crop: _validCrop(data['crop']),
