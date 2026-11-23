@@ -65,6 +65,18 @@ void main() {
     expect(tomato.price, 40);
   });
 
+  test('loading reference prices never overwrites a PSA import', () {
+    final references = PriceService.referenceRecords();
+    // "Get latest PSA prices" already saved Tomato and Onion for June 2026.
+    final missing = PriceService.missingReferences(references, {
+      'Tomato_2026-06',
+      'Onion_2026-06',
+    });
+    expect(missing.length, 69);
+    expect(missing.any((r) => r.crop == 'Tomato'), isFalse);
+    expect(missing.any((r) => r.crop == 'Lettuce'), isTrue);
+  });
+
   test('a price from before the newest month is an older price', () {
     final all = PriceService.withReferencePrices([]);
     expect(PriceService.newestMonth(all), '2026-06');

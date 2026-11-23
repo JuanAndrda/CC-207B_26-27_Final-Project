@@ -160,11 +160,16 @@ class _PriceListScreenState extends State<PriceListScreen> {
   Future<void> _loadReferencePrices() async {
     setState(() => _isImporting = true);
     try {
-      await PriceService().saveReferencePrices(AuthService.currentUser!.id);
+      final added = await PriceService().saveReferencePrices(
+        AuthService.currentUser!.id,
+      );
       if (!mounted) return;
       showMessage(
         context,
-        'Saved ${kCropCatalog.length} reference prices, each with its own month.',
+        added == 0
+            ? 'All reference prices are already saved.'
+            : 'Saved $added reference prices, each with its own month. '
+                  'Crops and months that already had a PSA price were kept.',
       );
       _load();
     } catch (e) {

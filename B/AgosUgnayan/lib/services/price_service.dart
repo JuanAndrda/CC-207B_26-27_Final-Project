@@ -113,10 +113,34 @@ class PriceService {
     ];
   }
 
-  /// Saves the catalog's reference prices to the database (admin only).
-  /// Same document ids as the PSA import, so nothing is duplicated.
-  Future<void> saveReferencePrices(String adminId) =>
-      saveMany(referenceRecords(), adminId);
+  /// Saves the catalog's reference prices to the database (admin only) and
+  /// returns how many were added. It skips every crop and month that already
+  /// has a price (e.g. from "Get latest PSA prices"), so a real PSA import
+  /// always wins and nothing is duplicated (same crop_month document id).
+  Future<int> saveReferencePrices(String adminId) async {
+    final references = referenceRecords();
+    final oldest = references
+        .map((r) => r.month)
+        .reduce((a, b) => a.compareTo(b) <= 0 ? a : b);
+    final existing = await runSafely('load prices', () async {
+      final snapshot = await _prices
+          .where('month', isGreaterThanOrEqualTo: oldest)
+          .get();
+      return {for (final doc in snapshot.docs) doc.id};
+    });
+    final missing = missingReferences(references, existing);
+    if (missing.isNotEmpty) await saveMany(missing, adminId);
+    return missing.length;
+  }
+
+  /// The [references] whose crop and month is not in [existingIds] yet.
+  static List<PriceRecord> missingReferences(
+    List<PriceRecord> references,
+    Set<String> existingIds,
+  ) => [
+    for (final reference in references)
+      if (!existingIds.contains(reference.docId)) reference,
+  ];
 
   /// The newest month of all [records], e.g. "2026-06" (null when empty).
   static String? newestMonth(List<PriceRecord> records) {
