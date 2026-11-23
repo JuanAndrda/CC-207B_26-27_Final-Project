@@ -9,6 +9,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/app_user.dart';
+import '../models/assistant.dart';
+import '../services/assistant_controller.dart';
 import '../services/auth_service.dart';
 import '../models/order.dart';
 import '../services/listing_service.dart';
@@ -72,7 +74,31 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadCounts();
+    // The AI assistant is for buyers only.
+    if (AuthService.currentUser?.isBuyer ?? false) {
+      AssistantController.instance.enable(_openTab);
+      AssistantController.instance.setTab(_assistantScreen(_tabs.first.id));
+    }
   }
+
+  @override
+  void dispose() {
+    if (AuthService.currentUser?.isBuyer ?? false) {
+      AssistantController.instance.disable(); // forget the chat on log out
+    }
+    super.dispose();
+  }
+
+  /// Which assistant page a tab is (for its suggested questions).
+  static AssistantScreen _assistantScreen(HomeTab tab) => switch (tab) {
+    HomeTab.market => AssistantScreen.market,
+    HomeTab.prices => AssistantScreen.prices,
+    HomeTab.requests => AssistantScreen.requests,
+    HomeTab.orders => AssistantScreen.orders,
+    HomeTab.following => AssistantScreen.following,
+    HomeTab.messages => AssistantScreen.messages,
+    _ => AssistantScreen.home,
+  };
 
   /// Picks the tabs for the logged-in user's role (same order as the website).
   static List<_Tab> _tabsForRole(AppUser? user) {
@@ -238,6 +264,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _select(int index) {
     setState(() => _selectedIndex = index);
+    if (AuthService.currentUser?.isBuyer ?? false) {
+      AssistantController.instance.setTab(_assistantScreen(_tabs[index].id));
+    }
     _loadCounts(); // keep the badges fresh
   }
 

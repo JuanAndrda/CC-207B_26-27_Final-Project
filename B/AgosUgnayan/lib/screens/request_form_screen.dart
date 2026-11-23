@@ -3,6 +3,9 @@
 
 import 'package:flutter/material.dart';
 
+import '../models/assistant.dart';
+import '../services/assistant_controller.dart';
+
 import '../models/buyer_request.dart';
 import '../services/auth_service.dart';
 import '../services/request_service.dart';
@@ -115,6 +118,15 @@ class _RequestFormScreenState extends State<RequestFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // A form: the AI assistant's round button hides so it never covers
+    // the form's buttons.
+    return AssistantScope(
+      page: const AssistantPage(AssistantScreen.requests, hideButton: true),
+      child: _buildForm(context),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
     return PopScope(
       canPop: !_hasChanges,
       onPopInvokedWithResult: (didPop, result) async {

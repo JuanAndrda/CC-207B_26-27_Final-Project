@@ -4,6 +4,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../models/assistant.dart';
+import '../services/assistant_controller.dart';
+
 import '../models/price_record.dart';
 import '../utils/constants.dart';
 import '../utils/format.dart';
@@ -31,6 +34,18 @@ class PriceDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tells the buyer AI assistant which crop and prices are open.
+    return AssistantScope(
+      page: AssistantPage(
+        AssistantScreen.priceDetail,
+        crop: crop,
+        history: history,
+      ),
+      child: Builder(builder: _buildPage),
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
     final latest = history.last;
     final prices = [for (final record in history) record.price];
     final lowest = prices.reduce((a, b) => a < b ? a : b);
