@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../models/ai_listing_suggestion.dart';
 import '../models/listing.dart';
 import '../models/price_record.dart';
+import '../services/ai_service.dart';
 import '../services/auth_service.dart';
 import '../services/listing_service.dart';
 import '../services/price_service.dart';
@@ -24,6 +25,7 @@ import '../widgets/crop_picker.dart';
 import '../widgets/dropdown_field.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/loading_button.dart';
+import '../widgets/notice_box.dart';
 import '../widgets/page_header.dart';
 import '../widgets/responsive_body.dart';
 
@@ -50,6 +52,9 @@ class _CropFormScreenState extends State<CropFormScreen> {
   bool _isSaving = false;
   bool _hasChanges = false; // for the "Discard changes?" warning
   bool _aiUsed = false; // true once the AI filled in the form
+  bool _isDescribing = false; // waiting for the AI description
+  bool _descriptionByAi = false; // shows the AI-generated label there
+  String? _describeError; // shown under the button when the AI fails
   List<PriceRecord> _prices = []; // for the reference price hint
 
   bool get _isEditing => widget.listing != null;
@@ -165,6 +170,44 @@ class _CropFormScreenState extends State<CropFormScreen> {
         : '';
     return 'For reference: PSA farmgate average, Iloilo Province, is '
         '${formatPeso(latest.price)}/kg (${formatMonthKey(latest.month)}$older).';
+  }
+
+  /// Asks the AI for a short description of the chosen crop. If the
+  /// farmer already wrote something, asks before replacing it.
+  Future<void> _generateDescription() async {
+    final crop = _crop;
+    if (crop == null) return;
+    setState(() {
+      _isDescribing = true;
+      _describeError = null;
+    });
+    try {
+      final text = await AiService().describeCrop(crop);
+      if (!mounted) return;
+      final hasOwnText = _descriptionController.text.trim().isNotEmpty;
+      final replace =
+          !hasOwnText ||
+          await showConfirmDialog(
+            context,
+            title: 'Replace your description?',
+            message: 'The AI wrote: "$text"',
+            confirmLabel: 'Replace',
+            cancelLabel: 'Keep mine',
+            isDestructive: false,
+          );
+      if (!mounted || !replace) return;
+      setState(() {
+        _descriptionController.text = text;
+        _descriptionByAi = true;
+        _aiUsed = true;
+        _hasChanges = true;
+      });
+      showMessage(context, 'AI wrote a description. Check and edit it.');
+    } catch (e) {
+      if (mounted) setState(() => _describeError = friendlyMessage(e));
+    } finally {
+      if (mounted) setState(() => _isDescribing = false);
+    }
   }
 
   /// Required, a number above 0, and at most 100,000 (like the website).
@@ -327,6 +370,43 @@ class _CropFormScreenState extends State<CropFormScreen> {
                     validator: Validators.maxLength(500),
                   ),
                 ),
+                // Optional: the AI writes a short description of the crop.
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Tooltip(
+                    message: _crop == null
+                        ? 'Choose a crop first'
+                        : 'The AI writes a short description you can edit',
+                    child: OutlinedButton.icon(
+                      onPressed: _crop == null || _isDescribing
+                          ? null
+                          : _generateDescription,
+                      icon: _isDescribing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.auto_awesome, size: 18),
+                      label: Text(
+                        _isDescribing
+                            ? 'Writing a description…'
+                            : 'Generate crop description',
+                      ),
+                    ),
+                  ),
+                ),
+                if (_descriptionByAi) ...[
+                  const SizedBox(height: AppSizes.small),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: AiGeneratedChip(),
+                  ),
+                ],
+                if (_describeError != null) ...[
+                  const SizedBox(height: AppSizes.small),
+                  NoticeBox(message: _describeError!, kind: NoticeKind.error),
+                ],
                 const SizedBox(height: AppSizes.sectionGap),
                 // Main button, then Cancel (which asks first if something
                 // was changed), like the website.

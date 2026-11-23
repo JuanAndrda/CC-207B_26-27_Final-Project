@@ -1,7 +1,9 @@
-// The AI Listing Assistant. A farmer types a quick note like
+// The AI Listing Assistant. (1) A farmer types a quick note like
 // "50 kilos kamatis, 45 per kilo, harvest sa Biyernes" and Gemini turns it
 // into form values. We call Gemini through Firebase AI Logic, so there is no
 // API key in the app.
+// (2) "Generate crop description": a short description of the chosen crop
+// for buyers, from the crop name only (no personal data is sent).
 
 import 'dart:async';
 
@@ -9,6 +11,7 @@ import 'package:firebase_ai/firebase_ai.dart';
 
 import '../models/ai_listing_suggestion.dart';
 import '../utils/app_exception.dart';
+import '../utils/ai_text.dart';
 import '../utils/app_logger.dart';
 import '../utils/constants.dart';
 import '../utils/privacy_filter.dart';
@@ -62,6 +65,50 @@ class AiService {
       throw const AppException(_fallbackMessage);
     }
   }
+
+  /// A short, plain description of [crop] for buyers (2-4 sentences, at
+  /// most 300 characters). Only the crop name and its category are sent.
+  /// Throws [AppException] with a friendly message if it fails, so the
+  /// farmer can simply write their own.
+  Future<String> describeCrop(String crop) async {
+    final category = cropInfo(crop)?.category.label ?? 'crop';
+    try {
+      final model = FirebaseAI.googleAI().generativeModel(
+        model: modelName,
+        generationConfig: GenerationConfig(temperature: 0.4),
+      );
+      final response = await model
+          .generateContent([Content.text(_describePrompt(crop, category))])
+          .timeout(timeout);
+      final text = cleanCropDescription(response.text);
+      if (text == null) throw const AppException(_describeFallback);
+      return text;
+    } on AppException {
+      rethrow;
+    } on TimeoutException {
+      throw const AppException(_describeFallback);
+    } catch (e, stack) {
+      AppLogger.error('AI crop description failed', e, stack);
+      throw const AppException(_describeFallback);
+    }
+  }
+
+  static const _describeFallback =
+      'The AI could not write a description right now. '
+      'You can write your own, or try again later.';
+
+  /// Instructions for the crop description. The rules keep it short,
+  /// simple and honest (no prices, no health claims, nothing about the farm).
+  String _describePrompt(String crop, String category) =>
+      '''
+Write a short description of the crop "$crop" ($category) for a farmer's
+listing in an online market in Iloilo, Philippines. Buyers will read it.
+In 2 to 4 short, simple English sentences (at most 280 characters in total):
+what the crop is, how it looks, how it is commonly cooked or used in the
+Philippines, and one useful tip for buyers (for example how to store it).
+Rules: plain text only, no title, no lists, no prices, no health or medical
+claims, and nothing about this farmer's farm, harvest or quality.
+''';
 
   static const _fallbackMessage =
       'The AI assistant is not available right now. '
