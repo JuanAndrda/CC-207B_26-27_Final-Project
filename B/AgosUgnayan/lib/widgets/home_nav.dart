@@ -16,6 +16,7 @@ enum HomeTab {
   market,
   requests,
   following,
+  orders,
   messages,
 }
 

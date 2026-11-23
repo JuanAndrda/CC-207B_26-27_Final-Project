@@ -53,9 +53,11 @@ const now = new Date();
 const farmerId = await createUser('farmer@demo.ph');
 const buyerId = await createUser('buyer@demo.ph');
 const adminId = await createUser('admin@demo.ph');
+const buyer2Id = await createUser('buyer2@demo.ph');
 
 await setDoc(`users/${farmerId}`, { name: 'Pedro Santos', email: 'farmer@demo.ph', role: 'farmer', town: 'Leon', about: 'Vegetable farmer in Barangay Bucari.', createdAt: now });
 await setDoc(`users/${buyerId}`, { name: 'Ana Reyes', email: 'buyer@demo.ph', role: 'buyer', town: 'Iloilo City', about: '', createdAt: now });
+await setDoc(`users/${buyer2Id}`, { name: 'Liza Cruz', email: 'buyer2@demo.ph', role: 'buyer', town: 'Pototan', about: '', createdAt: now });
 await setDoc(`users/${adminId}`, { name: 'Admin', email: 'admin@demo.ph', role: 'admin', town: 'Leon', about: '', createdAt: now });
 
 const crops = [
@@ -92,4 +94,40 @@ for (let m = 11; m >= 0; m--) {
   }
 }
 
-console.log('Demo data ready. Log in as farmer@demo.ph, buyer@demo.ph or admin@demo.ph (password demo1234).');
+// Orders (see docs/inventory-design.md). One chat between Ana and Pedro
+// holds the order cards. Stock: Pechay (demo7) has 5 kg reserved for Ana;
+// Eggplant (demo1) has 5 kg sold.
+const chatId = [buyerId, farmerId].sort().join('_');
+const order = (id, o) => setDoc(`orders/${id}`, {
+  source: 'listing', farmerId, farmerName: 'Pedro Santos', buyerId, buyerName: 'Ana Reyes',
+  participants: [buyerId, farmerId], chatId, title: '', unit: 'kg', note: '',
+  total: Math.round(o.qty * o.price * 100) / 100, updatedAt: now, reservedUntil: null, ...o,
+});
+await order('demoOrder1', { listingId: 'demo7', crop: 'Pechay', title: "Pedro's Food Stall", qty: 5, price: 54.4, status: 'reserved', createdAt: daysFromNow(-1), reservedUntil: daysFromNow(2), note: 'Pickup Saturday morning.' });
+await order('demoOrder2', { listingId: 'demo0', crop: 'Tomato', qty: 10, price: 45, status: 'pending', createdAt: daysFromNow(-0.1) });
+await order('demoOrder3', { listingId: 'demo1', crop: 'Eggplant', qty: 5, price: 55, status: 'completed', createdAt: daysFromNow(-6) });
+await order('demoOrder4', { listingId: 'demo2', crop: 'Cabbage', qty: 4, price: 40, status: 'pending', createdAt: daysFromNow(-4) }); // expired
+await setDoc('listings/demo7', {
+  farmerId, farmerName: 'Pedro Santos', crop: 'Pechay', title: "Pedro's Food Stall", quantity: 20, unit: 'kg', price: 54.4,
+  town: 'Leon', harvestDate: daysFromNow(2), description: 'Fresh pechay from Leon.', aiAssisted: false,
+  createdAt: new Date(Date.now() - 7 * 60000), soldQty: 0,
+  reservations: [{ orderId: 'demoOrder1', qty: 5, until: daysFromNow(2) }],
+});
+await setDoc('listings/demo1', {
+  farmerId, farmerName: 'Pedro Santos', crop: 'Eggplant', title: '', quantity: 30, unit: 'kg', price: 55,
+  town: 'Leon', harvestDate: daysFromNow(2), description: 'Fresh eggplant from Leon.', aiAssisted: false,
+  createdAt: new Date(Date.now() - 60000), soldQty: 5, reservations: [],
+});
+await setDoc(`chats/${chatId}`, {
+  participants: [buyerId, farmerId], names: { [buyerId]: 'Ana Reyes', [farmerId]: 'Pedro Santos' },
+  lastMessage: 'Request to buy: 10 kg of Tomato at ₱45.00/kg (₱450.00)', lastMessageAt: daysFromNow(-0.1), lastSenderId: buyerId,
+});
+const msg = (id, senderId, text, at, orderId) => setDoc(`chats/${chatId}/messages/${id}`, {
+  senderId, text, createdAt: at, ...(orderId ? { type: 'order', orderId } : {}),
+});
+await msg('m1', buyerId, 'Hi! Is your pechay still available?', daysFromNow(-1.1));
+await msg('m2', buyerId, 'Request to buy: 5 kg of Pechay at ₱54.40/kg (₱272.00)', daysFromNow(-1), 'demoOrder1');
+await msg('m3', farmerId, 'Accepted: 5 kg of Pechay is held for you.', daysFromNow(-0.9));
+await msg('m4', buyerId, 'Request to buy: 10 kg of Tomato at ₱45.00/kg (₱450.00)', daysFromNow(-0.1), 'demoOrder2');
+
+console.log('Demo data ready. Log in as farmer@demo.ph, buyer@demo.ph, buyer2@demo.ph or admin@demo.ph (password demo1234).');

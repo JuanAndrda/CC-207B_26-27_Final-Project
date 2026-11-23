@@ -9,6 +9,7 @@ import '../utils/format.dart';
 import '../utils/theme.dart';
 import 'crop_thumb.dart';
 import 'crop_image.dart';
+import 'stock_summary.dart';
 
 /// Crop, amount, town and farmer on the left, asking price on the right.
 class ListingCard extends StatelessWidget {
@@ -18,7 +19,11 @@ class ListingCard extends StatelessWidget {
     required this.onTap,
     this.trailing,
     this.showFarmer = true,
+    this.showStock = false,
   });
+
+  /// True in My Crops: shows available / reserved / sold and a bar.
+  final bool showStock;
 
   final Listing listing;
   final VoidCallback onTap;
@@ -32,7 +37,9 @@ class ListingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final details = [
-      '${formatQuantity(listing.quantity)} ${listing.unit}',
+      // What buyers can still ask for (total minus held and sold). With the
+      // stock line below, the amount is not repeated here.
+      if (!showStock) '${formatQuantity(listing.available)} ${listing.unit}',
       listing.town,
       if (showFarmer) listing.farmerName,
     ].join(' · ');
@@ -64,6 +71,10 @@ class ListingCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       CropDetailsLine(listing: listing, details: details),
+                      if (showStock) ...[
+                        const SizedBox(height: 6),
+                        StockSummary(listing: listing),
+                      ],
                     ],
                   ),
                 ),
@@ -104,10 +115,21 @@ class ListingGridCard extends StatelessWidget {
             // Sample photo (or placeholder), 16:10 like the website's cards.
             AspectRatio(
               aspectRatio: 16 / 10,
-              child: CropImage(
-                crop: listing.crop,
-                size: CropImageSize.card,
-                photoId: listing.photoId,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CropImage(
+                    crop: listing.crop,
+                    size: CropImageSize.card,
+                    photoId: listing.photoId,
+                  ),
+                  // "Only 3 kg left" etc. in the corner (empty when plenty).
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: StockChip(listing: listing),
+                  ),
+                ],
               ),
             ),
             Padding(
@@ -128,7 +150,7 @@ class ListingGridCard extends StatelessWidget {
                   CropDetailsLine(
                     listing: listing,
                     details:
-                        '${formatQuantity(listing.quantity)} ${listing.unit} · '
+                        '${formatQuantity(listing.available)} ${listing.unit} · '
                         '${listing.town}',
                   ),
                   Text(

@@ -1,16 +1,20 @@
 // F4 Messages: one conversation. Messages arrive live through a Firestore
-// stream; the newest is at the bottom, like any chat app.
+// stream; the newest is at the bottom, like any chat app. Order messages
+// show as live order cards (see OrderCard) with their buttons.
 
 import 'package:flutter/material.dart';
 
 import '../models/chat.dart';
+import '../models/order.dart';
 import '../services/auth_service.dart';
 import '../services/message_service.dart';
+import '../services/order_service.dart';
 import '../utils/app_exception.dart';
 import '../utils/format.dart';
 import '../utils/snackbars.dart';
 import '../utils/strings.dart';
 import '../utils/theme.dart';
+import '../widgets/order_card.dart';
 import '../widgets/responsive_body.dart';
 import '../widgets/async_state_view.dart';
 
@@ -36,6 +40,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final _myId = AuthService.currentUser!.id;
   late final _textController = TextEditingController(text: widget.draft);
   late Stream<List<ChatMessage>> _messages;
+  // One live query for all order cards in this chat (not one per card).
+  late final Stream<List<CropOrder>> _orders = OrderService().watchChat(
+    widget.chatId,
+    _myId,
+  );
   bool _isSending = false;
 
   @override
@@ -81,38 +90,70 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           children: [
             Expanded(
-              child: StreamBuilder<List<ChatMessage>>(
-                stream: _messages,
-                builder: (context, snapshot) {
-                  final messages = snapshot.data ?? [];
-                  return AsyncStateView(
-                    isLoading:
-                        snapshot.connectionState == ConnectionState.waiting,
-                    errorMessage: snapshot.hasError
-                        ? AppStrings.networkError
-                        : null,
-                    onRetry: () => setState(
-                      () => _messages = _service.watchMessages(widget.chatId),
-                    ),
-                    isEmpty: messages.isEmpty,
-                    emptyMessage: 'Say hello to ${widget.otherName}!',
-                    // reverse: true puts item 0 (the newest) at the bottom.
-                    builder: (context) => ListView.builder(
-                      reverse: true,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.pagePadding,
-                        vertical: 12,
-                      ),
-                      itemCount: messages.length,
-                      itemBuilder: (context, index) =>
-                          _buildBubble(messages[index]),
-                    ),
-                  );
+              child: StreamBuilder<List<CropOrder>>(
+                stream: _orders,
+                builder: (context, orderSnapshot) {
+                  final orders = {
+                    for (final o in orderSnapshot.data ?? <CropOrder>[])
+                      o.id: o,
+                  };
+                  return _buildMessages(orders);
                 },
               ),
             ),
             _buildInputBar(),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// The live list of messages; order messages become order cards.
+  Widget _buildMessages(Map<String, CropOrder> orders) {
+    return StreamBuilder<List<ChatMessage>>(
+      stream: _messages,
+      builder: (context, snapshot) {
+        final messages = snapshot.data ?? [];
+        return AsyncStateView(
+          isLoading: snapshot.connectionState == ConnectionState.waiting,
+          errorMessage: snapshot.hasError ? AppStrings.networkError : null,
+          onRetry: () =>
+              setState(() => _messages = _service.watchMessages(widget.chatId)),
+          isEmpty: messages.isEmpty,
+          emptyMessage: 'Say hello to ${widget.otherName}!',
+          // reverse: true puts item 0 (the newest) at the bottom.
+          builder: (context) => ListView.builder(
+            reverse: true,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.pagePadding,
+              vertical: 12,
+            ),
+            itemCount: messages.length,
+            itemBuilder: (context, index) {
+              final message = messages[index];
+              final order = orders[message.orderId];
+              // Until its order loads, it shows as normal text.
+              if (message.isOrderCard && order != null) {
+                return _buildOrderCard(message, order);
+              }
+              return _buildBubble(message);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  /// An order card on the sender's side, with the live status and buttons.
+  Widget _buildOrderCard(ChatMessage message, CropOrder order) {
+    final isMine = message.senderId == _myId;
+    return Align(
+      alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: OrderCard(order: order, myId: _myId),
         ),
       ),
     );

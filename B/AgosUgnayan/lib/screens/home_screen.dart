@@ -10,7 +10,9 @@ import 'package:flutter/material.dart';
 
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
+import '../models/order.dart';
 import '../services/listing_service.dart';
+import '../services/order_service.dart';
 import '../services/request_service.dart';
 import '../utils/theme.dart';
 import '../widgets/app_sidebar.dart';
@@ -24,18 +26,30 @@ import 'inbox_screen.dart';
 import 'marketplace_screen.dart';
 import 'my_crops_screen.dart';
 import 'my_requests_screen.dart';
+import 'orders_screen.dart';
 import 'price_list_screen.dart';
 import 'profile_screen.dart';
 
 /// One tab: which one it is, its label, icons and page.
 class _Tab {
-  const _Tab(this.id, this.label, this.icon, this.selectedIcon, this.page);
+  const _Tab(
+    this.id,
+    this.label,
+    this.icon,
+    this.selectedIcon,
+    this.page, {
+    this.onPhoneBar = true,
+  });
 
   final HomeTab id;
   final String label;
   final IconData icon; // outline icon when the tab is not selected
   final IconData selectedIcon; // filled icon when it is selected
   final Widget page;
+
+  /// False for a tab left out of the phone's bottom bar (it holds at most
+  /// 5). It is still opened from a Home tile or link.
+  final bool onPhoneBar;
 }
 
 /// Tabs for each role, with Profile and Log out in the sidebar or top bar.
@@ -97,11 +111,21 @@ class _HomeScreenState extends State<HomeScreen> {
           MyRequestsScreen(),
         ),
         _Tab(
+          HomeTab.orders,
+          'Orders',
+          Icons.receipt_long_outlined,
+          Icons.receipt_long,
+          OrdersScreen(),
+        ),
+        // On phones it is opened from the Home tile "Crops and farmers you
+        // follow", so the bottom bar keeps 5 tabs.
+        _Tab(
           HomeTab.following,
           'Following',
           Icons.favorite_border,
           Icons.favorite,
           FollowingScreen(),
+          onPhoneBar: false,
         ),
         _Tab(
           HomeTab.messages,
@@ -120,12 +144,15 @@ class _HomeScreenState extends State<HomeScreen> {
         Icons.home,
         FarmerHomeScreen(),
       ),
+      // On phones it is opened from Home ("All prices"), so the bottom bar
+      // keeps 5 tabs.
       _Tab(
         HomeTab.prices,
         'Prices',
         Icons.trending_up,
         Icons.trending_up,
         PriceListScreen(),
+        onPhoneBar: false,
       ),
       _Tab(
         HomeTab.myCrops,
@@ -133,6 +160,13 @@ class _HomeScreenState extends State<HomeScreen> {
         Icons.grass_outlined,
         Icons.grass,
         MyCropsScreen(),
+      ),
+      _Tab(
+        HomeTab.orders,
+        'Orders',
+        Icons.receipt_long_outlined,
+        Icons.receipt_long,
+        OrdersScreen(),
       ),
       _Tab(
         HomeTab.demand,
@@ -170,6 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
             .where((r) => myCrops.contains(r.crop))
             .length;
         if (mounted) setState(() => _counts[HomeTab.demand] = demand);
+        await _loadOrderCount(me.id, OrderState.pending);
       } else if (me.isBuyer) {
         final mine = await RequestService().fetchByBuyer(me.id);
         // The badge counts requests that need the buyer: expired, or
@@ -178,8 +213,17 @@ class _HomeScreenState extends State<HomeScreen> {
             .where((r) => r.isExpired || r.expiresSoon())
             .length;
         if (mounted) setState(() => _counts[HomeTab.requests] = attention);
+        await _loadOrderCount(me.id, OrderState.offered);
       }
     } catch (_) {}
+  }
+
+  /// The Orders badge: orders waiting for my answer (farmers: buyers'
+  /// requests; buyers: farmers' offers).
+  Future<void> _loadOrderCount(String myId, OrderState waitingForMe) async {
+    final orders = await OrderService().watchMine(myId).first;
+    final count = orders.where((o) => o.state == waitingForMe).length;
+    if (mounted) setState(() => _counts[HomeTab.orders] = count);
   }
 
   void _select(int index) {
@@ -279,6 +323,10 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    // The phone's bottom bar shows at most 5 tabs; a tab that is not on it
+    // (e.g. Prices, opened from Home) keeps Home highlighted.
+    final barTabs = _tabs.where((t) => t.onPhoneBar).toList();
+    final barIndex = barTabs.indexOf(_tabs[_selectedIndex]);
     return Scaffold(
       appBar: appBar,
       body: pages,
@@ -288,10 +336,10 @@ class _HomeScreenState extends State<HomeScreen> {
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
         child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _select,
+          selectedIndex: barIndex < 0 ? 0 : barIndex,
+          onDestinationSelected: (i) => _select(_tabs.indexOf(barTabs[i])),
           destinations: [
-            for (final tab in _tabs)
+            for (final tab in barTabs)
               NavigationDestination(
                 icon: _withBadge(tab, Icon(tab.icon)),
                 selectedIcon: _withBadge(tab, Icon(tab.selectedIcon)),

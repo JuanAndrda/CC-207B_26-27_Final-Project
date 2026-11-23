@@ -4,6 +4,8 @@
 // (only in Removed) Delete forever. Search, sorting and page numbers work
 // inside the chosen tab.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/listing.dart';
@@ -11,6 +13,7 @@ import '../services/auth_service.dart';
 import '../services/listing_photo_service.dart';
 import '../services/listing_service.dart';
 import '../utils/app_exception.dart';
+import '../utils/format.dart';
 import '../utils/paging.dart';
 import '../utils/snackbars.dart';
 import '../utils/strings.dart';
@@ -42,6 +45,7 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
   final _service = ListingService();
   final _scroll = ScrollController();
   List<Listing> _listings = [];
+  StreamSubscription<List<Listing>>? _subscription;
   bool _isLoading = true;
   String? _error;
 
@@ -58,26 +62,37 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
 
   @override
   void dispose() {
+    _subscription?.cancel();
     _scroll.dispose();
     super.dispose();
   }
 
+  /// Starts (or restarts, for Retry) the live list of my crops. It stays
+  /// current when stock is held or sold in Orders.
   Future<void> _load() async {
+    _subscription?.cancel();
     setState(() {
       _isLoading = true;
       _error = null;
     });
-    try {
-      final listings = await _service.fetchByFarmer(
-        AuthService.currentUser!.id,
-      );
-      if (!mounted) return;
-      setState(() => _listings = listings);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = friendlyMessage(e));
-    }
-    if (mounted) setState(() => _isLoading = false);
+    _subscription = _service
+        .watchByFarmer(AuthService.currentUser!.id)
+        .listen(
+          (listings) {
+            if (!mounted) return;
+            setState(() {
+              _listings = listings;
+              _isLoading = false;
+            });
+          },
+          onError: (_) {
+            if (!mounted) return;
+            setState(() {
+              _error = AppStrings.networkError;
+              _isLoading = false;
+            });
+          },
+        );
   }
 
   void _update(VoidCallback change) {
@@ -99,6 +114,17 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
   /// Undo in the message. Nothing is lost, so no question first.
   Future<void> _setStatus(Listing listing, String status, String done) async {
     final before = listing.status;
+    // Stock held for buyers must be sold or cancelled first, so nobody
+    // loses a reservation without being told (see Orders).
+    final held = listing.reserved;
+    if (status != ListingStatus.active && held > 0) {
+      showError(
+        context,
+        '${formatQuantity(held)} ${listing.unit} is reserved for buyers. '
+        'Mark those orders as sold or cancel them in Orders first.',
+      );
+      return;
+    }
     try {
       await _service.setStatus(listing.id, status);
       if (!mounted) return;
@@ -191,6 +217,8 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
         help: const [
           'Active crops are shown to buyers in the Market.',
           'Use the menu on a crop to edit it, mark it sold out, or remove it.',
+          'The line under each crop shows how much is available, reserved '
+              'for buyers, and sold. Reserved stock is managed in Orders.',
           'Sold out and removed crops are kept, so you can put them back on sale.',
           'Every change has Undo in the message at the bottom.',
         ],
@@ -251,7 +279,7 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
         count: slice.items.length,
         minTileWidth: 420,
         maxColumns: 2,
-        tileHeight: 76,
+        tileHeight: 120,
         itemBuilder: (context, index) => _card(slice.items[index]),
       ),
       pagination: PaginationBar(slice: slice, onPage: _goToPage),
@@ -263,6 +291,7 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
     return ListingCard(
       listing: listing,
       showFarmer: false,
+      showStock: true,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => ListingDetailScreen(listing: listing),

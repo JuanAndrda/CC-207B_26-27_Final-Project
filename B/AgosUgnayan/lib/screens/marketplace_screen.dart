@@ -5,11 +5,13 @@
 // 2. On the phone we apply the search and price filter, sort, and cut the
 //    result into pages of 12. Changing any filter goes back to page 1.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/listing.dart';
 import '../services/listing_service.dart';
-import '../utils/app_exception.dart';
+import '../utils/strings.dart';
 import '../utils/constants.dart';
 import '../utils/paging.dart';
 import '../widgets/chip_filter_row.dart';
@@ -43,6 +45,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   final _maxController = TextEditingController();
 
   List<Listing> _all = []; // what Firestore returned
+  StreamSubscription<List<Listing>>? _subscription;
   bool _isLoading = true;
   String? _error;
 
@@ -63,27 +66,41 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   @override
   void dispose() {
+    _subscription?.cancel();
     _scroll.dispose();
     _minController.dispose();
     _maxController.dispose();
     super.dispose();
   }
 
+  /// Starts the live Market list for the chosen crop and town. It updates
+  /// by itself, e.g. when a crop becomes fully reserved or comes back.
   Future<void> _load() async {
+    _subscription?.cancel();
     setState(() {
       _isLoading = true;
       _error = null;
     });
-    try {
-      final listings = await ListingService().fetchForMarket(
-        crop: _crop,
-        town: _town,
-      );
-      if (mounted) setState(() => _all = listings);
-    } catch (e) {
-      if (mounted) setState(() => _error = friendlyMessage(e));
-    }
-    if (mounted) setState(() => _isLoading = false);
+    _subscription = ListingService()
+        .watchForMarket(crop: _crop, town: _town)
+        .listen(
+          (listings) {
+            if (mounted) {
+              setState(() {
+                _all = listings;
+                _isLoading = false;
+              });
+            }
+          },
+          onError: (_) {
+            if (mounted) {
+              setState(() {
+                _error = AppStrings.networkError;
+                _isLoading = false;
+              });
+            }
+          },
+        );
   }
 
   /// Every filter change starts again at page 1 (so nobody lands on an

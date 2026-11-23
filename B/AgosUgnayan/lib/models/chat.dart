@@ -63,6 +63,7 @@ class ChatMessage {
     required this.senderId,
     required this.text,
     required this.createdAt,
+    this.orderId = '',
   });
 
   final String id;
@@ -70,12 +71,18 @@ class ChatMessage {
   final String text;
   final DateTime createdAt;
 
+  /// For an order card (type "order"): the order's id. Empty for text.
+  final String orderId;
+
+  bool get isOrderCard => orderId.isNotEmpty;
+
   factory ChatMessage.fromMap(String id, Map<String, dynamic> data) {
     return ChatMessage(
       id: id,
       senderId: data['senderId'] as String? ?? '',
       text: data['text'] as String? ?? '',
       createdAt: readDate(data['createdAt']),
+      orderId: data['type'] == 'order' ? data['orderId'] as String? ?? '' : '',
     );
   }
 }

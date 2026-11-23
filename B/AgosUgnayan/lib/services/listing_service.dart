@@ -68,6 +68,20 @@ class ListingService {
     });
   }
 
+  /// Live version of [fetchByFarmer], so My Crops shows stock changes from
+  /// Orders right away.
+  Stream<List<Listing>> watchByFarmer(String farmerId) {
+    return _listings.where('farmerId', isEqualTo: farmerId).snapshots().map((
+      snapshot,
+    ) {
+      final listings = snapshot.docs
+          .map((doc) => Listing.fromMap(doc.id, doc.data()))
+          .toList();
+      listings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return listings;
+    });
+  }
+
   /// Loads one listing, or null if it was deleted.
   Future<Listing?> fetchById(String id) {
     return runSafely('load listing', () async {
@@ -75,6 +89,15 @@ class ListingService {
       if (!doc.exists) return null;
       return Listing.fromMap(doc.id, doc.data()!);
     });
+  }
+
+  /// Live copy of one listing (null once deleted), so the listing page
+  /// shows the available amount change as soon as stock is held or sold.
+  Stream<Listing?> watch(String id) {
+    return _listings
+        .doc(id)
+        .snapshots()
+        .map((doc) => doc.exists ? Listing.fromMap(doc.id, doc.data()!) : null);
   }
 
   /// Adds a new listing (when id is empty) or updates an existing one, and
@@ -137,9 +160,34 @@ class ListingService {
           .get();
       return snapshot.docs
           .map((doc) => Listing.fromMap(doc.id, doc.data()))
-          .where((listing) => listing.isActive)
+          // Only crops buyers can still ask for. A fully reserved crop
+          // comes back by itself when a hold is cancelled or runs out.
+          .where((listing) => listing.isActive && listing.available > 0)
           .toList();
     });
+  }
+
+  /// Live version of [fetchForMarket]: one query whose results update by
+  /// themselves when a farmer's stock changes (Firestore only sends the
+  /// listings that changed, so this stays cheap).
+  Stream<List<Listing>> watchForMarket({
+    String? crop,
+    String? town,
+    int limit = 100,
+  }) {
+    Query<Map<String, dynamic>> query = _listings;
+    if (crop != null) query = query.where('crop', isEqualTo: crop);
+    if (town != null) query = query.where('town', isEqualTo: town);
+    return query
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Listing.fromMap(doc.id, doc.data()))
+              .where((listing) => listing.isActive && listing.available > 0)
+              .toList(),
+        );
   }
 
   /// Changes only a listing's status, e.g. to sold out.
@@ -170,6 +218,8 @@ class ListingService {
       batch.set(_listings.doc(listing.id), {
         ...listing.toMap(),
         'hasPhoto': photo != null,
+        'soldQty': listing.soldQty,
+        'reservations': [for (final r in listing.reservations) r.toMap()],
         'createdAt': Timestamp.fromDate(listing.createdAt),
       });
       if (photo != null) {

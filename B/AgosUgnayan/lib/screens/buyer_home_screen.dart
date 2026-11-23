@@ -75,7 +75,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       final page = results[0] as ListingPage;
       setState(() {
         // Only crops that are still for sale.
-        _newest = page.listings.where((l) => l.isActive).toList();
+        _newest = page.listings
+            .where((l) => l.isActive && l.available > 0)
+            .toList();
         _moreForSale = page.hasMore;
         _myRequests = results[1] as List<BuyerRequest>;
         _following =

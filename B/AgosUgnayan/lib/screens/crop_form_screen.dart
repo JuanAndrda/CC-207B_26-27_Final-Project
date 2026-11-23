@@ -232,12 +232,33 @@ class _CropFormScreenState extends State<CropFormScreen> {
     }
   }
 
+  /// Under the quantity when editing: how the total is used now.
+  String? _stockHelp() {
+    final listing = widget.listing;
+    if (listing == null) return null;
+    final unit = listing.unit;
+    return 'Sold ${formatQuantity(listing.soldQty)} $unit · reserved '
+        '${formatQuantity(listing.reserved)} $unit · available '
+        '${formatQuantity(listing.available)} $unit. Buyers see the '
+        'available amount.';
+  }
+
   /// Required, a number above 0, and at most 100,000 (like the website).
   String? _quantityValidator(String? value) {
     final problem = Validators.positiveNumber(value);
     if (problem != null) return problem;
-    if (double.parse(value!.trim()) > 100000) {
+    final quantity = double.parse(value!.trim());
+    if (quantity > 100000) {
       return 'Enter a quantity up to 100,000.';
+    }
+    // The total can't go below what is already sold or held for buyers.
+    final listing = widget.listing;
+    if (listing != null) {
+      final used = listing.soldQty + listing.reserved;
+      if (quantity < used) {
+        return 'You already sold or reserved ${formatQuantity(used)} '
+            '${listing.unit}. Enter at least that.';
+      }
     }
     return null;
   }
@@ -320,8 +341,9 @@ class _CropFormScreenState extends State<CropFormScreen> {
                 ),
                 const SizedBox(height: AppSizes.fieldGap),
                 LabeledField(
-                  label: 'Quantity',
+                  label: _isEditing ? 'Total stock' : 'Quantity',
                   isRequired: true,
+                  help: _stockHelp(),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

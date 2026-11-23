@@ -68,6 +68,54 @@ service cloud.firestore {
       }
     }
 
+    // Orders between one buyer and one farmer (see docs/inventory-design.md).
+    // Only the two people in the order can see it. Stock lives on the
+    // listing, which only its farmer can write (see /listings above).
+    match /orders/{id} {
+      function newOrder() { return request.resource.data; }
+      function isBuyer() { return request.auth.uid == resource.data.buyerId; }
+      function isFarmer() { return request.auth.uid == resource.data.farmerId; }
+      function changesOnly(keys) {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+      }
+      function was(status) { return resource.data.status == status; }
+      function becomes(status) { return request.resource.data.status == status; }
+
+      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+
+      // The amounts must make sense and the total must be qty x price. A
+      // buyer may only ask (pending, from a listing of that farmer); a
+      // farmer may only offer (offered).
+      allow create: if signedIn()
+        && newOrder().qty is number && newOrder().qty > 0
+        && newOrder().price is number && newOrder().price > 0
+        && math.abs(newOrder().total - newOrder().qty * newOrder().price) < 0.01
+        && newOrder().buyerId != newOrder().farmerId
+        && newOrder().participants == [newOrder().buyerId, newOrder().farmerId]
+        && newOrder().createdAt == request.time
+        && (
+          (newOrder().buyerId == request.auth.uid
+            && newOrder().status == 'pending' && newOrder().source == 'listing'
+            && get(/databases/$(database)/documents/listings/$(newOrder().listingId)).data.farmerId == newOrder().farmerId)
+          || (newOrder().farmerId == request.auth.uid
+            && newOrder().status == 'offered' && newOrder().source == 'offer')
+        );
+
+      // Nobody edits the other person's fields: only the status, its date
+      // and the hold's end date change, and only in these steps.
+      allow update: if signedIn()
+        && changesOnly(['status', 'updatedAt', 'reservedUntil'])
+        && (
+          (isBuyer() && changesOnly(['status', 'updatedAt'])
+            && ((was('pending') && becomes('cancelled'))
+              || (was('offered') && (becomes('reserved') || becomes('declined')))))
+          || (isFarmer()
+            && ((was('pending') && (becomes('reserved') || becomes('declined')))
+              || (was('reserved') && (becomes('reserved') || becomes('completed') || becomes('cancelled')))
+              || (was('offered') && becomes('cancelled'))))
+        );
+    }
+
     // Reference prices: everyone logged in reads, only the admin writes.
     match /prices/{id} {
       allow read: if signedIn();
