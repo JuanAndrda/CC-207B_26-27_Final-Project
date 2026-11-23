@@ -53,6 +53,7 @@ enum AssistantIntent {
   offerMath,
   orderStatus,
   howTo,
+  outOfScope, // answered by the app itself, never sent to the AI
 }
 
 /// A suggested question chip: its words and what kind of question it is.

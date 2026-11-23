@@ -105,6 +105,7 @@ class PriceComparison {
     'differencePesos': ?difference,
     'differencePercent': ?percent,
     'comparison': ?verdict,
+    if (isOlder) 'warnings': ['This PSA price is old: $monthText.'],
     'psaMeaning':
         'PSA farmgate price = the average price farmers were paid in Iloilo '
         'Province that month, before transport and selling costs.',
@@ -303,17 +304,64 @@ double? quantityIn(String text) {
   return match == null ? null : clampQuantity(match.group(1));
 }
 
-/// The search without AI: finds a known crop and town in the words.
-SearchQuery keywordQuery(String text) {
-  final lower = text.toLowerCase();
-  String? crop;
+/// True when the question asks for zero or a negative amount.
+bool asksZeroOrLess(String text) => RegExp(
+  r'(^|\s)-\s*\d|(^|[^\d.])0+(\.0+)?\s*(kg|kilo|bundle|sack|piece)',
+  caseSensitive: false,
+).hasMatch(text);
+
+/// How many letters must change to turn [a] into [b] (edit distance).
+int editDistance(String a, String b) {
+  var previous = List<int>.generate(b.length + 1, (i) => i);
+  for (var i = 1; i <= a.length; i++) {
+    final current = [i, ...List<int>.filled(b.length, 0)];
+    for (var j = 1; j <= b.length; j++) {
+      final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+      current[j] = [
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + cost,
+      ].reduce((x, y) => x < y ? x : y);
+    }
+    previous = current;
+  }
+  return previous[b.length];
+}
+
+/// The first of our 71 crops named in [lower] (lowercase text), by name
+/// or local name. Small typos in longer words are forgiven ("tomatoe"
+/// finds Tomato).
+String? cropInText(String lower) {
   for (final info in kCropCatalog) {
     final names = [info.name, ...info.localNames].map((n) => n.toLowerCase());
     if (names.any((n) => RegExp('\\b${RegExp.escape(n)}\\b').hasMatch(lower))) {
-      crop = info.name;
-      break;
+      return info.name;
     }
   }
+  final words = RegExp(r'[a-z]+').allMatches(lower).map((m) => m.group(0)!);
+  for (final word in words.where((w) => w.length >= 5)) {
+    for (final info in kCropCatalog) {
+      for (final name in [info.name, ...info.localNames]) {
+        final n = name.toLowerCase();
+        if (n.contains(' ') || (n.length - word.length).abs() > 1) continue;
+        if (editDistance(word, n) <= (n.length >= 8 ? 2 : 1)) return info.name;
+      }
+    }
+  }
+  return null;
+}
+
+/// True for "what is available near me?"-style questions that may list
+/// every crop. Other searches must name a crop we know.
+bool isGeneralSearch(String text) => RegExp(
+  r'available|anything|everything|what.*(sale|sell)|near me|all crops|'
+  r'ano ang|unsa|lahat',
+).hasMatch(text.toLowerCase());
+
+/// The search without AI: finds a known crop and town in the words.
+SearchQuery keywordQuery(String text) {
+  final lower = text.toLowerCase();
+  final crop = cropInText(lower);
   String? town;
   for (final t in kTowns) {
     if (lower.contains(t.toLowerCase())) {
@@ -371,6 +419,11 @@ List<Listing> searchListings(
 AssistantIntent detectIntent(String text, AssistantPage page) {
   final lower = text.toLowerCase();
   bool has(String pattern) => RegExp(pattern).hasMatch(lower);
+  // Things the assistant must not do are answered by the app itself.
+  if (outOfScopeReply(text) != null) return AssistantIntent.outOfScope;
+  if (has(r'do you have|for sale|meron|may .* ba\b')) {
+    return AssistantIntent.search;
+  }
   if (has(
     r'\bhow (do|can|to)\b|\bwhat is\b.*\b(order|request|follow)|'
     r'\bwhere (do|can)\b|\bexpired?\b|\bfollow',
@@ -406,6 +459,56 @@ AssistantIntent detectIntent(String text, AssistantPage page) {
   }
   if (keywordQuery(text).crop != null) return AssistantIntent.search;
   return AssistantIntent.howTo;
+}
+
+/// A fixed answer (no AI) for questions the assistant must not handle:
+/// acting for the buyer, health advice, personal data, attempts to change
+/// its rules, and questions with no words. Null for normal questions.
+String? outOfScopeReply(String text) {
+  final lower = text.toLowerCase().trim();
+  bool has(String pattern) => RegExp(pattern).hasMatch(lower);
+  if (!RegExp(r'[a-z0-9]').hasMatch(lower)) {
+    return 'Please type your question in words, like "Find the cheapest '
+        'tomato" or "How much for 5 kg?".';
+  }
+  if (has(
+    r'ignore (all|the|your|previous|any)\b|system prompt|your (rules|'
+    r'instructions)|pretend|jailbreak|developer mode',
+  )) {
+    return "I can't do that. I can help with prices, finding crops, totals "
+        'and how orders work.';
+  }
+  if (has(
+    r'phone|contact (number|details)|e-?mail|home address|all users|'
+    r'list (of )?users|password|user id',
+  )) {
+    return "I can't share anyone's contact details. Use \"Message farmer\" "
+        'to talk with a farmer inside the app.';
+  }
+  if (has(
+    r'safe to eat|diabetes|\bsick\b|disease|medicine|medical|\bhealth|'
+    r'allerg|pregnan|\bcure',
+  )) {
+    return "I can't give health or medical advice. Please ask a doctor or "
+        'a health worker.';
+  }
+  if (has(
+    r'\b(buy|order|reserve|accept|decline|cancel)\b.*\bfor me\b|'
+    r'^(please )?(accept|decline|buy)\b|\bsend (a |the )?message|'
+    r'\bmessage the farmer\b',
+  )) {
+    return "I can't buy, accept, decline or send messages for you. Use the "
+        'buttons on the page: "Request to buy" on a listing, or Accept and '
+        'Decline on an offer card.';
+  }
+  return null;
+}
+
+/// Cuts [text] after its 5th sentence, so answers stay short.
+String limitSentences(String text, {int max = 5}) {
+  final ends = RegExp(r'[.!?](\s|$)').allMatches(text).toList();
+  if (ends.length <= max) return text.trim();
+  return text.substring(0, ends[max - 1].start + 1).trim();
 }
 
 /// Farmer-written text (titles, descriptions, notes) is data, not orders
