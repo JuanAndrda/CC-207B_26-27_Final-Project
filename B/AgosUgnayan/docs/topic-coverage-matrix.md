@@ -47,5 +47,10 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Persistence | `lib/services/price_service.dart` | `PriceService` | Firestore plus an offline copy in `shared_preferences` |
 | AI | `lib/services/ai_service.dart` | `AiService.suggestListing` | Gemini via Firebase AI Logic, 20 s timeout, fallback message |
 | AI | `lib/models/ai_listing_suggestion.dart` | `AiListingSuggestion.fromJsonText` | Keeps only valid AI values, drops the rest |
+| AI | `lib/services/ai_service.dart`, `lib/utils/ai_text.dart` | `AiService.describeCrop`, `cleanCropDescription` | "Generate crop description": crop name only, cleaned to 300 characters, labeled, editable, with fallback |
+| Value widgets | `lib/utils/crop_catalog.dart` | `CropInfo`, `CropCategory`, `kCropCatalog` | 71 crops in 6 categories with photo article, PSA price and month |
+| Interaction | `lib/widgets/crop_picker.dart` | `CropPickerField`, `showCropPicker` (`showModalBottomSheet` / `Dialog`) | Searchable crop list grouped by category, sheet on phones, dialog on laptops |
+| Value widgets | `lib/widgets/price_change.dart` | `PriceChangeText`, `OlderPriceTag` | ▲▼ change only against the month just before; "Older price" label |
+| Async / API | `lib/models/buyer_request.dart` | `RequestStatus`, `statusAt`, `daysLeftAt` | Open / Expired / Closed worked out from the dates, unit-tested |
 | AI | `lib/widgets/ai_assistant_box.dart` | `AiAssistantBox`, `AiGeneratedChip` | Note input, loading state, "AI-generated" label |
 | Privacy | `lib/utils/privacy_filter.dart` | `removeContactDetails` | Removes phone numbers and emails before calling the AI |

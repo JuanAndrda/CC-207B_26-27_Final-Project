@@ -111,3 +111,18 @@ Every farmer and buyer tab was opened at four widths (with demo data on the loca
 | 768 px (tablet) | Icon rail on the left, 3-column crop grid | same | No layout errors |
 | 1280 px (laptop) | Full sidebar with counts and user card, 4-column grid, two-column dashboards | same | No layout errors |
 | 1440 px (wide) | Same as laptop; content stays 1200 px wide and centered | same | No layout errors |
+
+## Update (Nov 23): 71 crops, AI descriptions, expired requests
+
+| Heuristic | Change | File / widget |
+|---|---|---|
+| 1 Visibility of system status | Expired requests show an amber "Expired" badge and "(3 days ago)"; open ones due soon show "Expires today / tomorrow / 3 days left"; Home reminds the buyer; the Requests badge counts what needs attention | `widgets/request_card.dart`, `screens/buyer_home_screen.dart`, `screens/home_screen.dart` |
+| 2 Match with the real world | Crops grouped like at a market (fruit vegetables, leafy, root crops, condiments, beans, fruits); local names work in search ("litsugas" finds Lettuce) | `utils/crop_catalog.dart`, `widgets/crop_picker.dart` |
+| 3 User control and freedom | New date for an expired request has Undo; Close asks first and can be reopened | `screens/my_requests_screen.dart` |
+| 5 Error prevention | "Needed by" can't be in the past; old prices are labeled "Older price" and never compared with far-away months; the AI asks before replacing the farmer's own description | `widgets/date_field.dart`, `widgets/price_change.dart`, `screens/crop_form_screen.dart` |
+| 6 Recognition rather than recall | Crop photos in the picker and lists; category chips instead of 71 crop chips | `widgets/crop_picker.dart`, `widgets/chip_filter_row.dart` (`CategoryChipRow`) |
+| 7 Flexibility and efficiency | "Generate crop description" writes a first draft; search the crop list instead of scrolling 71 names | `services/ai_service.dart`, `widgets/crop_picker.dart` |
+| 9 Error recovery | Expired request details explain what happened and what to do; AI failure says the farmer can write their own | `screens/request_detail_screen.dart`, `screens/crop_form_screen.dart` |
+| 10 Help | Help tips on Prices ("Older price") and My requests (Expired) | `screens/price_list_screen.dart`, `screens/my_requests_screen.dart` |
+
+Checked on the emulator with the updated demo data at 375 and 1280 px: crop picker with search, Market with categories and new crops, Prices with "Older price", Add crop with the description button and its fallback, My requests Open / Expired / Closed, buyer Home reminder. No layout errors.
