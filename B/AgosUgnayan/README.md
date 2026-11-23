@@ -4,6 +4,8 @@ A mobile and web app that helps smallholder farmers in Iloilo Province (starting
 
 CC 207B Final Project (Applications Development and Emerging Technologies), WVSU, section B.
 
+**Live app:** https://agosugnayan-cc207b.web.app (works on phones and computers; create an account to try it).
+
 - **Client:** smallholder farmers in Leon, Iloilo
 - **Users:** Farmer, Buyer (households and businesses), Admin (enters monthly reference prices)
 - **Not included:** payments, cart, delivery, ratings, maps and language settings. The app connects people, and the deal happens in their own chat.
@@ -106,6 +108,31 @@ Log in with `farmer@demo.ph`, `buyer@demo.ph` or `admin@demo.ph`, password `demo
    flutter run -d chrome
    ```
    If the first screen says **Firebase is not set up yet**, repeat step 2.
+
+### Deploy the web app (Firebase Hosting)
+
+The live app is at https://agosugnayan-cc207b.web.app. Only someone added to the Firebase project can deploy.
+
+1. Add Hosting to your `firebase.json` (it is gitignored, because `flutterfire configure` writes it). Add these two parts next to the `"flutter"` part:
+   ```json
+   "hosting": {
+     "public": "build/web",
+     "ignore": ["firebase.json", "**/.*"],
+     "rewrites": [{ "source": "**", "destination": "/index.html" }]
+   },
+   "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" }
+   ```
+2. Build for the real Firebase project (never with `USE_EMULATOR`):
+   ```
+   flutter build web --release --no-web-resources-cdn
+   ```
+3. Deploy:
+   ```
+   firebase deploy --only hosting --project agosugnayan-cc207b
+   ```
+   If you changed `firestore.rules` or `firestore.indexes.json`, deploy those too: `firebase deploy --only firestore:rules,firestore:indexes --project agosugnayan-cc207b`.
+
+The built app contains the Firebase **web** API key. That is normal for every Firebase web app and not a secret: the data is protected by `firestore.rules` (you must be logged in, you can only change your own things, only the admin writes prices). Never commit `lib/firebase_options.dart`, `android/app/google-services.json` or `firebase.json`.
 
 ## How we work
 
