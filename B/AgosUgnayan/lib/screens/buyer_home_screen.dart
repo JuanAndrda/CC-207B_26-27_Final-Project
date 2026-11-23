@@ -11,11 +11,11 @@ import '../models/price_record.dart';
 import '../services/auth_service.dart';
 import '../services/following_service.dart';
 import '../services/listing_service.dart';
-import '../services/message_service.dart';
 import '../services/price_service.dart';
 import '../services/request_service.dart';
 import '../utils/app_exception.dart';
 import '../utils/constants.dart';
+import '../utils/format.dart';
 import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
 import '../widgets/home_nav.dart';
@@ -44,7 +44,6 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   bool _moreForSale = false;
   List<BuyerRequest> _myRequests = [];
   int _following = 0;
-  int _chats = 0;
   List<PriceRecord> _prices = [];
   bool _isLoading = true;
   String? _error;
@@ -68,8 +67,6 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         FollowingService().fetch(me.id, FollowType.listing),
         FollowingService().fetch(me.id, FollowType.farmer),
         PriceService().fetchRecent(),
-        // The chat list is a live stream; we only need its first value.
-        MessageService().watchChats(me.id).first,
       ]);
       if (!mounted) return;
       final page = results[0] as ListingPage;
@@ -84,7 +81,6 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             (results[2] as List<FollowedItem>).length +
             (results[3] as List<FollowedItem>).length;
         _prices = (results[4] as PriceData).records;
-        _chats = (results[5] as List).length;
       });
     } catch (e) {
       if (mounted) setState(() => _error = friendlyMessage(e));
@@ -100,6 +96,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   }
 
   void _open(HomeTab tab) => HomeNav.of(context)?.open(tab);
+
+  /// The newest month with a PSA price, for the Prices tile.
+  String? get _newestMonth => PriceService.newestMonth(_prices);
 
   List<BuyerRequest> get _openRequests =>
       _myRequests.where((r) => !r.isClosed).toList();
@@ -194,13 +193,15 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                         label: 'Crops and farmers you follow',
                         onTap: () => _open(HomeTab.following),
                       ),
+                      // Opens Prices (on phones Prices is not in the
+                      // bottom bar, so this tile is the way there).
                       StatTile(
-                        icon: Icons.chat_bubble_outline,
-                        value: '$_chats',
-                        label: _chats == 1
-                            ? 'Conversation with farmers'
-                            : 'Conversations with farmers',
-                        onTap: () => _open(HomeTab.messages),
+                        icon: Icons.trending_up,
+                        value: _newestMonth == null
+                            ? '–'
+                            : formatMonthKey(_newestMonth!),
+                        label: 'PSA prices to compare',
+                        onTap: () => _open(HomeTab.prices),
                       ),
                     ],
                   ),
@@ -307,6 +308,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     final prices = SectionCard(
       icon: Icons.trending_up,
       title: 'PSA farmgate prices',
+      action: TextButton(
+        onPressed: () => _open(HomeTab.prices),
+        child: const Text('All prices'),
+      ),
       padChild: false,
       child: PriceMiniList(crops: kCrops.take(5).toList(), records: _prices),
     );

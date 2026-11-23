@@ -103,6 +103,16 @@ class _HomeScreenState extends State<HomeScreen> {
           Icons.storefront,
           MarketplaceScreen(),
         ),
+        // On phones it is opened from Home ("All prices"), so the bottom bar
+        // keeps 5 tabs.
+        _Tab(
+          HomeTab.prices,
+          'Prices',
+          Icons.trending_up,
+          Icons.trending_up,
+          PriceListScreen(),
+          onPhoneBar: false,
+        ),
         _Tab(
           HomeTab.requests,
           'Requests',

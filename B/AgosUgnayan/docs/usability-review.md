@@ -151,3 +151,13 @@ Checked on the emulator with the demo data at 375 and 1280 px:
 - My Crops stock line.
 
 No layout errors.
+
+## Update (Nov 23): Prices for buyers
+
+| Heuristic | Change | File / widget |
+|---|---|---|
+| 6 Recognition rather than recall | Buyers get the same Prices page as farmers, so they can compare PSA farmgate prices with farmers' asking prices before requesting or accepting an offer | `screens/home_screen.dart`, `screens/price_list_screen.dart` |
+| 8 Aesthetic and minimalist design | On phones the bottom bar stays at 5 tabs; Prices opens from a Home tile ("PSA prices to compare") and the "All prices" link. On tablets and laptops it is in the menu | `screens/buyer_home_screen.dart` |
+| 5 Error prevention | Buyers see the page read-only: the admin buttons (Get latest PSA prices, Load reference prices, Add price) only show for the admin | `screens/price_list_screen.dart` |
+
+Checked as buyer@demo.ph on the emulator at 375 and 1280 px.

@@ -28,7 +28,7 @@ import 'price_detail_screen.dart';
 
 enum _Sort { name, priceHigh, priceLow, change }
 
-/// Prices tab for farmers and the admin.
+/// Prices tab for farmers, buyers and the admin.
 class PriceListScreen extends StatefulWidget {
   const PriceListScreen({super.key});
 
@@ -207,6 +207,7 @@ class _PriceListScreenState extends State<PriceListScreen> {
         );
     }
     final isAdmin = AuthService.currentUser?.isAdmin ?? false;
+    final isBuyer = AuthService.currentUser?.isBuyer ?? false;
     final slice = pageOf(crops, _page, pageSize: 20);
 
     return ListPage(
@@ -215,10 +216,15 @@ class _PriceListScreenState extends State<PriceListScreen> {
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PageHeader(
+          PageHeader(
             eyebrow: 'Farmgate prices',
             title: 'Market prices',
-            help: [
+            // Buyers use this to judge farmers' asking prices.
+            lead: isBuyer
+                ? "Compare these with farmers' asking prices before you "
+                      'decide how much to offer.'
+                : null,
+            help: const [
               'These are PSA farmgate prices for Iloilo Province: what farmers '
                   'were paid per kg, on average, that month.',
               'The month is shown on every price. PSA publishes a few months '

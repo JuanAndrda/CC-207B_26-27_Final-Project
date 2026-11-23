@@ -59,6 +59,7 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Navigation | `lib/screens/orders_screen.dart` | `OrdersScreen`, `tabOf` | Orders / My orders tab with status tabs, search, sort, pages, live list |
 | Interaction | `lib/widgets/order_card.dart` | `OrderCard`, `OrderStateBadge` | Role-based buttons with confirm sheets; used in Orders and in the chat |
 | Forms / validation | `lib/widgets/request_to_buy_sheet.dart`, `lib/widgets/offer_sheet.dart` | `showRequestToBuySheet`, `showOfferSheet` | Quantity checked against what is available, live total |
+| Navigation | `lib/screens/home_screen.dart` | `_tabsForRole` (`onPhoneBar`) | Prices for farmers and buyers; on phones it opens from Home so the bottom bar keeps 5 tabs |
 | Value widgets | `lib/widgets/stock_summary.dart` | `StockSummary`, `StockChip` | "15 kg available · 5 reserved · 0 sold" with a bar; "Only 3 kg left" |
 | Persistence | `lib/services/listing_photo_service.dart`, `lib/utils/photo_compress.dart` | `ListingPhotoService`, `compressPhoto` | Farmer's photo shrunk on the device and saved in Firestore, loaded lazily |
 | Interaction | `lib/widgets/photo_picker_field.dart` | `PhotoPickerField` | Add, change or remove a photo with a preview; sample photo as fallback |
