@@ -172,8 +172,12 @@ class _HomeScreenState extends State<HomeScreen> {
         if (mounted) setState(() => _counts[HomeTab.demand] = demand);
       } else if (me.isBuyer) {
         final mine = await RequestService().fetchByBuyer(me.id);
-        final open = mine.where((r) => !r.isClosed).length;
-        if (mounted) setState(() => _counts[HomeTab.requests] = open);
+        // The badge counts requests that need the buyer: expired, or
+        // expiring today or tomorrow.
+        final attention = mine
+            .where((r) => r.isExpired || r.expiresSoon())
+            .length;
+        if (mounted) setState(() => _counts[HomeTab.requests] = attention);
       }
     } catch (_) {}
   }

@@ -4,6 +4,19 @@
 import 'firestore_date.dart';
 
 /// One thing a buyer wants to buy.
+/// Where a buyer request is.
+enum RequestStatus {
+  /// Farmers see it in Buyer Demand and can offer their crops.
+  open,
+
+  /// Its "needed by" day passed and the buyer did not close it. Kept (not
+  /// deleted), so the buyer can pick a new date or close it.
+  expired,
+
+  /// The buyer closed it (found a farmer or no longer needs it).
+  closed,
+}
+
 class BuyerRequest {
   const BuyerRequest({
     required this.id,
@@ -35,16 +48,35 @@ class BuyerRequest {
   /// True when the buyer closed it (e.g. they found a farmer).
   final bool closedByBuyer;
 
-  /// True when the "needed by" day has passed. Worked out when reading,
-  /// so nothing has to update the database every day.
-  bool get isExpired {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return neededBy.isBefore(today);
+  /// Open, Expired or Closed, worked out from the data every time it is
+  /// read (the free Firebase plan has no server to change it at midnight).
+  /// [now] can be given in tests; the app uses the phone's clock.
+  RequestStatus statusAt(DateTime now) {
+    if (closedByBuyer) return RequestStatus.closed;
+    return daysLeftAt(now) < 0 ? RequestStatus.expired : RequestStatus.open;
   }
 
-  /// Closed by the buyer, or its date has passed.
-  bool get isClosed => closedByBuyer || isExpired;
+  /// Days from today until the "needed by" day, comparing dates only:
+  /// 0 = needed today (still open all day), 1 = tomorrow, -3 = 3 days ago.
+  int daysLeftAt(DateTime now) {
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(neededBy.year, neededBy.month, neededBy.day);
+    // Rounding handles days that are 23 or 25 hours long.
+    return (day.difference(today).inHours / 24).round();
+  }
+
+  RequestStatus get status => statusAt(DateTime.now());
+  int get daysLeft => daysLeftAt(DateTime.now());
+
+  /// True when the "needed by" day has passed and the buyer did not close it.
+  bool get isExpired => status == RequestStatus.expired;
+
+  /// Not open any more: expired or closed. Farmers only see open requests.
+  bool get isClosed => status != RequestStatus.open;
+
+  /// True when it is open and needed within [days] days (today counts).
+  bool expiresSoon({int days = 1}) =>
+      status == RequestStatus.open && daysLeft <= days;
 
   /// Builds a request from a Firestore document.
   factory BuyerRequest.fromMap(String id, Map<String, dynamic> data) {

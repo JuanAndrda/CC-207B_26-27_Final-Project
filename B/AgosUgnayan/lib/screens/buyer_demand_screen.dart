@@ -230,7 +230,7 @@ class _BuyerDemandScreenState extends State<BuyerDemandScreen> {
         count: slice.items.length,
         minTileWidth: 420,
         maxColumns: 2,
-        tileHeight: 112,
+        tileHeight: 132,
         itemBuilder: (context, index) {
           final request = slice.items[index];
           return RequestCard(

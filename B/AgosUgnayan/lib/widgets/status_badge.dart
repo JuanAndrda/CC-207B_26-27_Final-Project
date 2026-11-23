@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 
 /// The kinds of status the app shows, each with its own colors.
-enum StatusKind { open, answered, closed, removed }
+enum StatusKind { open, answered, closed, removed, expired }
 
 /// e.g. a light green "Open" pill.
 class StatusBadge extends StatelessWidget {
@@ -22,6 +22,7 @@ class StatusBadge extends StatelessWidget {
       StatusKind.answered => (AppColors.infoLight, AppColors.info),
       StatusKind.closed => (AppColors.segmented, AppColors.textMuted),
       StatusKind.removed => (AppColors.dangerLight, AppColors.danger),
+      StatusKind.expired => (AppColors.warningLight, AppColors.warningInk),
     };
     return Container(
       height: 28,

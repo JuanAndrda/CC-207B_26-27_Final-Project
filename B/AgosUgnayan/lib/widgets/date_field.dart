@@ -15,6 +15,7 @@ class DateField extends StatelessWidget {
     required this.onChanged,
     required this.firstDate,
     this.isRequired = true,
+    this.notBeforeToday = false,
   });
 
   /// Label inside the box. Use null when a LabeledField shows it above.
@@ -23,6 +24,9 @@ class DateField extends StatelessWidget {
   final ValueChanged<DateTime?> onChanged;
   final DateTime firstDate; // earliest date the user may pick
   final bool isRequired;
+
+  /// True refuses dates before today (e.g. "Needed by").
+  final bool notBeforeToday;
 
   Future<void> _pickDate(BuildContext context) async {
     final today = DateTime.now();
@@ -55,8 +59,15 @@ class DateField extends StatelessWidget {
               )
             : const Icon(Icons.calendar_today),
       ),
-      validator: (_) =>
-          isRequired && value == null ? AppStrings.dateRequired : null,
+      validator: (_) {
+        if (isRequired && value == null) return AppStrings.dateRequired;
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        if (notBeforeToday && value != null && value!.isBefore(today)) {
+          return 'Choose today or a later date.';
+        }
+        return null;
+      },
     );
   }
 }

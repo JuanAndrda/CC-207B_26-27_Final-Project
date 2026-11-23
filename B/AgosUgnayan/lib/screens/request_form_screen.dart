@@ -19,6 +19,7 @@ import '../widgets/crop_picker.dart';
 import '../widgets/dropdown_field.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/loading_button.dart';
+import '../widgets/notice_box.dart';
 import '../widgets/page_header.dart';
 import '../widgets/responsive_body.dart';
 
@@ -143,6 +144,17 @@ class _RequestFormScreenState extends State<RequestFormScreen> {
                       'Farmers see this in Buyer Demand and can message you '
                       'with offers.',
                 ),
+                // Editing an expired request: explain what to do.
+                if (widget.request?.status == RequestStatus.expired) ...[
+                  const SizedBox(height: AppSizes.fieldGap),
+                  NoticeBox(
+                    kind: NoticeKind.warning,
+                    message:
+                        'This request expired on '
+                        '${formatDate(widget.request!.neededBy)}. Choose a new '
+                        '"Needed by" date to show it to farmers again.',
+                  ),
+                ],
                 const SizedBox(height: AppSizes.sectionGap),
                 const RequiredNote(),
                 const SizedBox(height: AppSizes.fieldGap),
@@ -213,6 +225,8 @@ class _RequestFormScreenState extends State<RequestFormScreen> {
                     label: null,
                     value: _neededBy,
                     firstDate: DateTime.now(),
+                    // An expired request must get a new date to open again.
+                    notBeforeToday: true,
                     onChanged: (date) => setState(() {
                       _neededBy = date;
                       _hasChanges = true;

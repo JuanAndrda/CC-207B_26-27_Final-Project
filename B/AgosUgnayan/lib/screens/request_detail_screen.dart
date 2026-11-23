@@ -9,9 +9,10 @@ import '../utils/format.dart';
 import '../utils/theme.dart';
 import '../widgets/info_row.dart';
 import '../widgets/message_button.dart';
+import '../widgets/notice_box.dart';
 import '../widgets/page_header.dart';
 import '../widgets/responsive_body.dart';
-import '../widgets/status_badge.dart';
+import '../widgets/request_card.dart';
 
 /// Shows everything about [request].
 class RequestDetailScreen extends StatelessWidget {
@@ -32,10 +33,7 @@ class RequestDetailScreen extends StatelessWidget {
           children: [
             Align(
               alignment: Alignment.centerLeft,
-              child: StatusBadge(
-                label: request.isClosed ? 'Closed' : 'Open',
-                kind: request.isClosed ? StatusKind.closed : StatusKind.open,
-              ),
+              child: RequestStatusBadge(request: request),
             ),
             const SizedBox(height: 10),
             PageHeader(
@@ -45,6 +43,19 @@ class RequestDetailScreen extends StatelessWidget {
                   'Needed by ${formatDate(request.neededBy)} in '
                   '${request.town}.',
             ),
+            // Expired or closed: say so plainly (farmers can't offer now).
+            if (request.status != RequestStatus.open) ...[
+              const SizedBox(height: AppSizes.fieldGap),
+              NoticeBox(
+                kind: NoticeKind.warning,
+                message: request.status == RequestStatus.expired
+                    ? 'This request has expired: it was needed by '
+                          '${formatDate(request.neededBy)}. '
+                          '${me.id == request.buyerId ? 'Choose a new date in My requests to open it again.' : 'The buyer may post a new date later.'}'
+                    : 'The buyer closed this request. It is no longer '
+                          'open for offers.',
+              ),
+            ],
             const SizedBox(height: AppSizes.sectionGap),
             Card(
               child: Column(

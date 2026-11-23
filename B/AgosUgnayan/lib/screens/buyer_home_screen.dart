@@ -20,6 +20,7 @@ import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
 import '../widgets/home_nav.dart';
 import '../widgets/listing_card.dart';
+import '../widgets/notice_box.dart';
 import '../widgets/page_header.dart';
 import '../widgets/price_mini_list.dart';
 import '../widgets/request_card.dart';
@@ -101,6 +102,37 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   List<BuyerRequest> get _openRequests =>
       _myRequests.where((r) => !r.isClosed).toList();
 
+  /// The reminder about requests that expire soon or have expired (our
+  /// in-app notification; push or email would need a paid server).
+  Widget? _requestReminder() {
+    final expired = _myRequests.where((r) => r.isExpired).length;
+    final soon = _myRequests.where((r) => r.expiresSoon()).length;
+    if (expired == 0 && soon == 0) return null;
+    final parts = [
+      if (soon > 0)
+        '$soon request${soon == 1 ? ' expires' : 's expire'} today or tomorrow',
+      if (expired > 0)
+        '$expired request${expired == 1 ? ' has' : 's have'} expired',
+    ];
+    return Row(
+      children: [
+        Expanded(
+          child: NoticeBox(
+            kind: NoticeKind.warning,
+            message:
+                '${parts.join(' and ')}. Choose a new date or close '
+                '${expired + soon == 1 ? 'it' : 'them'} in My requests.',
+          ),
+        ),
+        const SizedBox(width: AppSizes.small),
+        TextButton(
+          onPressed: () => _open(HomeTab.requests),
+          child: const Text('Review'),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final me = AuthService.currentUser!;
@@ -132,6 +164,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       label: const Text('Post request'),
                     ),
                   ),
+                  if (_requestReminder() case final reminder?) ...[
+                    const SizedBox(height: AppSizes.fieldGap),
+                    reminder,
+                  ],
                   const SizedBox(height: AppSizes.sectionGap),
                   StatGrid(
                     tiles: [
