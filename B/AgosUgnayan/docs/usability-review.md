@@ -126,3 +126,28 @@ Every farmer and buyer tab was opened at four widths (with demo data on the loca
 | 10 Help | Help tips on Prices ("Older price") and My requests (Expired) | `screens/price_list_screen.dart`, `screens/my_requests_screen.dart` |
 
 Checked on the emulator with the updated demo data at 375 and 1280 px: crop picker with search, Market with categories and new crops, Prices with "Older price", Add crop with the description button and its fallback, My requests Open / Expired / Closed, buyer Home reminder. No layout errors.
+
+## Update (Nov 23): titles, photos, stock and orders
+
+| Heuristic | Change | File / widget |
+|---|---|---|
+| 1 Visibility of system status | Available amount on every card and the listing page; "Only 3 kg left"; My Crops shows available / reserved / sold with a bar; order labels say whose turn it is ("Needs your answer", "Waiting for farmer"); the Orders badge counts what waits for me; chat cards update live | `widgets/stock_summary.dart`, `widgets/order_card.dart`, `screens/home_screen.dart` |
+| 2 Match with the real world | Farmers can name their listing like their stall ("Juan's Food Stall") and show their own harvest photo; words like "Request to buy", "Hold 3 more days", "Mark as sold" | `screens/crop_form_screen.dart`, `widgets/order_card.dart` |
+| 3 User control and freedom | Cancel a waiting request (buyer), cancel an offer or reservation (farmer), decline; Remove photo; buyers can "Ask to cancel" in the chat | `widgets/order_card.dart`, `widgets/photo_picker_field.dart` |
+| 4 Consistency and standards | Orders uses the same list page, tabs, search, sort and pages as the other lists; one order card for the Orders screen and the chat | `screens/orders_screen.dart`, `widgets/list_tools.dart` |
+| 5 Error prevention | You can't ask for more than is available; Accept re-checks stock and refuses ("Nothing is left of this crop to hold"); Edit can't set stock below sold + reserved; Mark sold out and Remove are blocked while stock is held; every irreversible step asks first; offers from a listing hold the stock so it is not sold twice | `widgets/request_to_buy_sheet.dart`, `services/order_service.dart`, `screens/my_crops_screen.dart` |
+| 6 Recognition rather than recall | The real crop name stays under a custom title; "Marketplace" / "Private offer" labels; the total is shown while typing | `widgets/listing_card.dart`, `widgets/order_card.dart` |
+| 7 Flexibility and efficiency | Offer a crop right in the chat without posting it; "Take from my listing" fills the unit and price | `widgets/offer_sheet.dart` |
+| 8 Aesthetic and minimalist design | The phone's bottom bar keeps 5 tabs (Prices and Following open from Home); tab labels stay on one line | `screens/home_screen.dart`, `widgets/list_tools.dart` |
+| 9 Error recovery | Clear messages when a photo is not a picture or too large, or when stock ran out | `utils/photo_compress.dart`, `services/order_service.dart` |
+| 10 Help | Help tips on Orders explain Waiting, Reserved, expiry and private offers | `screens/orders_screen.dart` |
+
+Checked on the emulator with the demo data at 375 and 1280 px:
+- Add crop with a title and an uploaded photo.
+- Market cards with titles and available amounts.
+- Listing page with Request to buy (asking for more than is available is blocked).
+- Orders as farmer and buyer: accept, refused over-reserve, mark sold, cancel.
+- Chat order cards and the offer form: private, and from a listing.
+- My Crops stock line.
+
+No layout errors.

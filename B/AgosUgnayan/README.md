@@ -50,6 +50,10 @@ Also: **Following** (buyers follow crop listings or farmers, shown on two tabs) 
 | `shared_preferences` | Saves the last loaded reference prices on the phone for offline use. |
 | `fl_chart` | Draws the 12-month reference price chart. |
 | `http` | Downloads farmgate prices from the PSA OpenSTAT API and sample crop photos from Wikipedia (both free, no key). |
+| `image_picker` | Lets farmers pick their own crop photo on the web and on phones (free, BSD licence, by the Flutter team). |
+| `image` | Shrinks that photo to an 800 px JPEG on the device before saving it (free, MIT licence). |
+
+Everything we use is free: Firebase's Spark plan (no credit card), the Gemini free tier through Firebase AI Logic, and the public PSA OpenSTAT and Wikipedia APIs. See `docs/known-limitations.md` for the free-tier limits.
 
 Navigation uses Flutter's built-in `Navigator.push` / `pop` (no routing package), the same way as in our class activities.
 
@@ -81,7 +85,7 @@ node tool/seed_emulator.mjs
 flutter run -d chrome --dart-define=USE_EMULATOR=true
 ```
 
-Log in with `farmer@demo.ph`, `buyer@demo.ph` or `admin@demo.ph`, password `demo1234`. The emulator forgets everything when you stop it; run the seed script again after restarting. The AI assistant does not work in the emulator, so it shows its fallback message, which is a good way to demo the fallback.
+Log in with `farmer@demo.ph`, `buyer@demo.ph`, `buyer2@demo.ph` or `admin@demo.ph`, password `demo1234`. The demo data includes a titled listing ("Pedro's Food Stall"), reserved, waiting, sold and expired orders, and a chat with order cards. To check the security rules for orders, stock and photos against the emulator (18 checks), run `node tool/rules_test.mjs` after seeding. The emulator forgets everything when you stop it; run the seed script again after restarting. The AI assistant does not work in the emulator, so it shows its fallback message, which is a good way to demo the fallback.
 
 ### Option B: the real Firebase project
 

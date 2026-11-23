@@ -13,9 +13,34 @@
 - **Crop catalog**: 71 crops in 6 categories live in `lib/utils/crop_catalog.dart`. Their PSA reference prices (from the team, mostly June 2026) are used whenever the database has no price for that crop and month. Prices older than the newest month are labeled "Older price" and keep their real month (e.g. Leeks, January 2025). The "Get latest PSA prices" import only knows the PSA tables of the first 10 crops; the other 61 use the catalog until an admin adds newer prices.
 - **Banana blossom and Camote tops** share the Banana and Sweet potato photos, because Wikipedia has no separate photo for them.
 - **Expired requests** are worked out from the date on the phone each time (the free Firebase plan has no server to change data at midnight). Reminders are inside the app only (Home notice, badge, "Expires tomorrow"); push or email reminders would need Cloud Functions on the paid Blaze plan.
-- **Crop photos**: farmers can't upload their own photos yet. Crops show a sample photo from Wikipedia, always labeled "Sample photo" with the photographer and license; offline, or if Wikipedia can't be reached, a green leaf placeholder shows instead. Photos are saved on the device for a week.
+- **Crop photos**: farmers can add their own photo. Without one, the crop shows a sample photo from Wikipedia, always labeled "Sample photo" with the photographer and license; offline, or if Wikipedia can't be reached, a green leaf placeholder shows instead. Sample photos are saved on the device for a week.
+- **Farmers' photos are stored in Firestore, not Firebase Storage**, because Storage now needs the paid Blaze plan.
+  - The app shrinks each photo on the device to at most 800 px (JPEG, aiming at 150 KB, refusing anything still over 300 KB).
+  - It is saved in its own `listing_photos` document, because Firestore allows 1 MB per document.
+  - So photos are smaller and less sharp than a full-size upload, and there is one photo per listing.
+- **Stock and orders** (see `docs/inventory-design.md`): available = total − sold − holds that have not ended, worked out every time.
+  - Holds and waiting requests or offers end by their date only (3 days); there is no server to change them at midnight.
+  - An ended hold stops counting by itself, but the order shows "Reservation ended" until the farmer marks it sold, holds it 3 more days or cancels it.
+  - Only the farmer's app writes stock, so a hold for an offer the buyer declined is freed when the farmer next opens Orders (or when its date passes).
+- **No push or email notifications**: changes show inside the app as chat messages ("Accepted…", "Sold…") with the unread dot, live order cards and badges on Orders and Requests. Push (FCM) or email would need Cloud Functions, which need the paid Blaze plan.
+- **Private offers** are only between the two people in the chat. A farmer can offer one crop per offer; several crops need several offers.
+- **Orders screen** loads up to 200 of the user's newest orders.
 
 - **Changing your name** in Edit profile does not rename crops, requests or chats you posted before; they keep the name they were posted with (the app says so on the Edit profile page).
+
+## Free-tier limits that matter
+
+We only use free services. A class-sized test stays far below these limits, but they are good to know:
+
+| Service | Free limit (Spark plan / free tier) | How the app stays under it |
+|---|---|---|
+| Cloud Firestore | 50,000 reads, 20,000 writes and 20,000 deletes per day; 1 GiB stored | Lists use limits and pages; the Market, Orders and chat use one live query each (not one per card); photos load only for cards on screen and stay in memory |
+| Firebase Hosting | 10 GB stored, 360 MB downloaded per day | One small web build; crop photos are not hosted by us |
+| Firebase Authentication | Free for email and password | Email and password only |
+| Gemini (Firebase AI Logic, Gemini Developer API) | Free tier with per-minute and per-day request limits | Called only when a farmer taps a button; 20-second timeout and a fallback when it is busy |
+| PSA OpenSTAT, Wikipedia | Free public APIs | PSA only when the admin taps the button; Wikipedia photos load lazily, 2 at a time, saved for 7 days |
+
+**App Check**: Firebase AI Logic will enforce App Check from January 21, 2027. App Check with reCAPTCHA for the web is free if we need to turn it on.
 
 ## Removed from the web version on purpose
 - Map view of sellers, and every map package and component.
@@ -25,7 +50,6 @@
 
 ## Planned features
 - Price alerts and notifications when a followed farmer posts a crop.
-- Crop photos (Firebase Storage).
 - Hiligaynon and Filipino translations.
 - Importing PSA prices automatically every month (now the admin taps a button).
 - Reporting and moderation tools for the admin.

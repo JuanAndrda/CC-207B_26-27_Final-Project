@@ -53,4 +53,13 @@ Where each course topic appears in our code. Each feature owner checks their row
 | Value widgets | `lib/widgets/price_change.dart` | `PriceChangeText`, `OlderPriceTag` | ▲▼ change only against the month just before; "Older price" label |
 | Async / API | `lib/models/buyer_request.dart` | `RequestStatus`, `statusAt`, `daysLeftAt` | Open / Expired / Closed worked out from the dates, unit-tested |
 | AI | `lib/widgets/ai_assistant_box.dart` | `AiAssistantBox`, `AiGeneratedChip` | Note input, loading state, "AI-generated" label |
+| Value widgets | `lib/models/listing.dart` | `Reservation`, `availableAt`, `reservedAt`, `StockState` | Available / reserved / sold worked out from the dates, unit-tested |
+| Value widgets | `lib/models/order.dart` | `CropOrder`, `OrderState`, `stateAt`, `orderTotal` | Order steps and expiry from the dates, unit-tested |
+| Async / API | `lib/services/order_service.dart` | `OrderService` (`requestToBuy`, `accept`, `markSold`, `sendOffer`, `_transaction`) | Firestore transactions that refuse when not enough stock is left |
+| Navigation | `lib/screens/orders_screen.dart` | `OrdersScreen`, `tabOf` | Orders / My orders tab with status tabs, search, sort, pages, live list |
+| Interaction | `lib/widgets/order_card.dart` | `OrderCard`, `OrderStateBadge` | Role-based buttons with confirm sheets; used in Orders and in the chat |
+| Forms / validation | `lib/widgets/request_to_buy_sheet.dart`, `lib/widgets/offer_sheet.dart` | `showRequestToBuySheet`, `showOfferSheet` | Quantity checked against what is available, live total |
+| Value widgets | `lib/widgets/stock_summary.dart` | `StockSummary`, `StockChip` | "15 kg available · 5 reserved · 0 sold" with a bar; "Only 3 kg left" |
+| Persistence | `lib/services/listing_photo_service.dart`, `lib/utils/photo_compress.dart` | `ListingPhotoService`, `compressPhoto` | Farmer's photo shrunk on the device and saved in Firestore, loaded lazily |
+| Interaction | `lib/widgets/photo_picker_field.dart` | `PhotoPickerField` | Add, change or remove a photo with a preview; sample photo as fallback |
 | Privacy | `lib/utils/privacy_filter.dart` | `removeContactDetails` | Removes phone numbers and emails before calling the AI |
