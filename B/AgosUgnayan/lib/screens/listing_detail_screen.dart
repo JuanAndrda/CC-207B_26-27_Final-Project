@@ -31,7 +31,7 @@ class ListingDetailScreen extends StatelessWidget {
     final amount = '${formatQuantity(listing.quantity)} ${listing.unit}';
 
     return Scaffold(
-      appBar: AppBar(title: Text(listing.crop)),
+      appBar: AppBar(title: Text(listing.headline)),
       body: ResponsiveBody(
         maxWidth: AppSizes.maxFormWidth,
         child: ListView(
@@ -41,13 +41,18 @@ class ListingDetailScreen extends StatelessWidget {
             // makes clear it is not the farmer's own harvest.
             CropHero(
               crop: listing.crop,
+              photoId: listing.photoId,
               note: 'The farmer has not added a photo.',
             ),
             const SizedBox(height: AppSizes.fieldGap),
             PageHeader(
               eyebrow: '${listing.town}, Iloilo',
-              title: listing.crop,
-              lead: '$amount available from ${listing.farmerName}.',
+              title: listing.headline,
+              // With a title, the real crop is named right under it.
+              lead: listing.title.isEmpty
+                  ? '$amount available from ${listing.farmerName}.'
+                  : '${listing.crop}: $amount available from '
+                        '${listing.farmerName}.',
             ),
             const SizedBox(height: 12),
             Row(
@@ -69,6 +74,7 @@ class ListingDetailScreen extends StatelessWidget {
             Card(
               child: Column(
                 children: [
+                  InfoRow(icon: Icons.eco, label: 'Crop', value: listing.crop),
                   InfoRow(icon: Icons.scale, label: 'Available', value: amount),
                   InfoRow(
                     icon: Icons.location_on,
@@ -126,7 +132,7 @@ class ListingDetailScreen extends StatelessWidget {
                     child: FollowButton(
                       targetId: listing.id,
                       type: FollowType.listing,
-                      title: '${listing.crop} · $amount',
+                      title: '${listing.headline} · $amount',
                       subtitle:
                           '${formatPeso(listing.price)}/${listing.unit} · '
                           '${listing.farmerName}, ${listing.town}',

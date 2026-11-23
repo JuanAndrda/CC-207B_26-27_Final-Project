@@ -1,11 +1,14 @@
 // Reads and writes crop listings in Firestore (listings collection).
 // Screens never call Firestore directly; they call this service.
 
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/listing.dart';
 import '../utils/app_exception.dart';
 import '../utils/constants.dart';
+import 'listing_photo_service.dart';
 
 /// One page of Marketplace results, plus what we need to load the next page.
 class ListingPage {
@@ -74,17 +77,44 @@ class ListingService {
     });
   }
 
-  /// Adds a new listing (when id is empty) or updates an existing one.
-  Future<void> save(Listing listing) {
+  /// Adds a new listing (when id is empty) or updates an existing one, and
+  /// returns its id. [newPhoto] saves the farmer's (already shrunk) photo;
+  /// [removePhoto] deletes it. The listing and its photo are written in one
+  /// batch, so we never end up with a listing that points to no photo.
+  Future<String> save(
+    Listing listing, {
+    Uint8List? newPhoto,
+    bool removePhoto = false,
+  }) {
     return runSafely('save listing', () async {
-      if (listing.id.isEmpty) {
-        await _listings.add({
-          ...listing.toMap(),
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+      final isNew = listing.id.isEmpty;
+      final ref = isNew ? _listings.doc() : _listings.doc(listing.id);
+      final hasPhoto = newPhoto != null || (listing.hasPhoto && !removePhoto);
+      final data = {...listing.toMap(), 'hasPhoto': hasPhoto};
+      final photoRef = ListingPhotoService.collection.doc(ref.id);
+
+      final batch = FirebaseFirestore.instance.batch();
+      if (isNew) {
+        batch.set(ref, {...data, 'createdAt': FieldValue.serverTimestamp()});
       } else {
-        await _listings.doc(listing.id).update(listing.toMap());
+        batch.update(ref, data);
       }
+      if (newPhoto != null) {
+        batch.set(
+          photoRef,
+          ListingPhotoService.toMap(listing.farmerId, newPhoto),
+        );
+      } else if (removePhoto && listing.hasPhoto) {
+        batch.delete(photoRef);
+      }
+      await batch.commit();
+      if (newPhoto != null || removePhoto) {
+        ListingPhotoService.instance.remember(
+          ref.id,
+          hasPhoto ? newPhoto : null,
+        );
+      }
+      return ref.id;
     });
   }
 
@@ -120,17 +150,35 @@ class ListingService {
     );
   }
 
-  Future<void> delete(String id) {
-    return runSafely('delete listing', () => _listings.doc(id).delete());
+  /// Deletes a listing for good, together with its photo.
+  Future<void> delete(Listing listing) {
+    return runSafely('delete listing', () {
+      final batch = FirebaseFirestore.instance.batch();
+      batch.delete(_listings.doc(listing.id));
+      if (listing.hasPhoto) {
+        batch.delete(ListingPhotoService.collection.doc(listing.id));
+      }
+      return batch.commit();
+    });
   }
 
   /// Puts a deleted listing back exactly as it was (for the Undo button).
-  Future<void> restore(Listing listing) {
+  /// [photo] is its photo from before (null = no photo any more).
+  Future<void> restore(Listing listing, {Uint8List? photo}) {
     return runSafely('restore listing', () {
-      return _listings.doc(listing.id).set({
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(_listings.doc(listing.id), {
         ...listing.toMap(),
+        'hasPhoto': photo != null,
         'createdAt': Timestamp.fromDate(listing.createdAt),
       });
+      if (photo != null) {
+        batch.set(
+          ListingPhotoService.collection.doc(listing.id),
+          ListingPhotoService.toMap(listing.farmerId, photo),
+        );
+      }
+      return batch.commit();
     });
   }
 }

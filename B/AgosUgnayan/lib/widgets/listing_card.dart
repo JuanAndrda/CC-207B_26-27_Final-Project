@@ -47,26 +47,23 @@ class ListingCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
             child: Row(
               children: [
-                CropThumb(crop: listing.crop),
+                CropThumb(crop: listing.crop, photoId: listing.photoId),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        listing.crop,
+                        listing.headline,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        details,
-                        style: AppTextStyles.meta,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 2),
+                      CropDetailsLine(listing: listing, details: details),
                     ],
                   ),
                 ),
@@ -107,7 +104,11 @@ class ListingGridCard extends StatelessWidget {
             // Sample photo (or placeholder), 16:10 like the website's cards.
             AspectRatio(
               aspectRatio: 16 / 10,
-              child: CropImage(crop: listing.crop, size: CropImageSize.card),
+              child: CropImage(
+                crop: listing.crop,
+                size: CropImageSize.card,
+                photoId: listing.photoId,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
@@ -115,7 +116,7 @@ class ListingGridCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    listing.crop,
+                    listing.headline,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -124,12 +125,11 @@ class ListingGridCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${formatQuantity(listing.quantity)} ${listing.unit} · '
-                    '${listing.town}',
-                    style: AppTextStyles.meta,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  CropDetailsLine(
+                    listing: listing,
+                    details:
+                        '${formatQuantity(listing.quantity)} ${listing.unit} · '
+                        '${listing.town}',
                   ),
                   Text(
                     listing.farmerName,
@@ -149,6 +149,44 @@ class ListingGridCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The grey line under a listing's headline. When the listing has its own
+/// title, the real crop name comes first in green, e.g.
+/// "Pechay · 20 kg · Leon", so buyers always see which crop it is.
+class CropDetailsLine extends StatelessWidget {
+  const CropDetailsLine({
+    super.key,
+    required this.listing,
+    required this.details,
+  });
+
+  final Listing listing;
+  final String details;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (listing.title.isNotEmpty) ...[
+            TextSpan(
+              text: listing.crop,
+              style: const TextStyle(
+                color: AppColors.link,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const TextSpan(text: ' · '),
+          ],
+          TextSpan(text: details),
+        ],
+      ),
+      style: AppTextStyles.meta,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }

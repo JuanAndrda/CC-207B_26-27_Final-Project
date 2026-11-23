@@ -62,10 +62,11 @@ const crops = [
   ['Tomato', 50, 'kg', 45], ['Eggplant', 30, 'kg', 55], ['Cabbage', 20, 'kg', 40],
   ['Ampalaya', 15, 'kg', 80], ['Kangkong', 40, 'bundle', 15],
   ['Lettuce', 10, 'kg', 240], ['Mango', 60, 'kg', 70],
+  ['Pechay', 20, 'kg', 54.4, "Pedro's Food Stall"],
 ];
-for (const [i, [crop, quantity, unit, price]] of crops.entries()) {
+for (const [i, [crop, quantity, unit, price, title = '']] of crops.entries()) {
   await setDoc(`listings/demo${i}`, {
-    farmerId, farmerName: 'Pedro Santos', crop, quantity, unit, price, town: 'Leon',
+    farmerId, farmerName: 'Pedro Santos', crop, title, quantity, unit, price, town: 'Leon',
     harvestDate: daysFromNow(2), description: `Fresh ${crop.toLowerCase()} from Leon.`,
     aiAssisted: false, createdAt: new Date(Date.now() - i * 60000),
   });

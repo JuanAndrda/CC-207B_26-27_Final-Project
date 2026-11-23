@@ -28,6 +28,8 @@ class Listing {
     required this.aiAssisted,
     required this.createdAt,
     this.status = ListingStatus.active,
+    this.title = '',
+    this.hasPhoto = false,
   });
 
   final String id; // empty for a new listing that is not saved yet
@@ -43,6 +45,19 @@ class Listing {
   final bool aiAssisted; // true if the AI assistant helped fill the form
   final DateTime createdAt;
   final String status; // one of ListingStatus
+
+  /// Optional listing title or stall name, e.g. "Juan's Food Stall".
+  /// The real crop always stays in [crop] for search and filters.
+  final String title;
+
+  /// True when the farmer uploaded a photo (in listing_photos/{id}).
+  final bool hasPhoto;
+
+  /// The card's headline: the title if there is one, else the crop.
+  String get headline => title.isEmpty ? crop : title;
+
+  /// The id to load the farmer's own photo with, or null for none.
+  String? get photoId => hasPhoto && id.isNotEmpty ? id : null;
 
   /// True when buyers can see it in the Market.
   bool get isActive => status == ListingStatus.active;
@@ -63,6 +78,8 @@ class Listing {
       aiAssisted: data['aiAssisted'] as bool? ?? false,
       createdAt: readDate(data['createdAt']),
       status: data['status'] as String? ?? ListingStatus.active,
+      title: (data['title'] as String? ?? '').trim(),
+      hasPhoto: data['hasPhoto'] as bool? ?? false,
     );
   }
 
@@ -80,6 +97,8 @@ class Listing {
       'description': description,
       'aiAssisted': aiAssisted,
       'status': status,
+      'title': title,
+      'hasPhoto': hasPhoto,
     };
   }
 }

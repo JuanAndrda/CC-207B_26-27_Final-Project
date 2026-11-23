@@ -14,7 +14,11 @@ class CropThumb extends StatelessWidget {
     this.crop,
     this.size = 48,
     this.icon = Icons.eco_outlined,
+    this.photoId,
   });
+
+  /// A listing with the farmer's own photo (shown instead of the sample).
+  final String? photoId;
 
   /// Our crop name, e.g. "Tomato". Null shows only [icon].
   final String? crop;
@@ -29,7 +33,11 @@ class CropThumb extends StatelessWidget {
         width: size,
         height: size,
         child: crop != null
-            ? CropImage(crop: crop!, size: CropImageSize.thumb)
+            ? CropImage(
+                crop: crop!,
+                size: CropImageSize.thumb,
+                photoId: photoId,
+              )
             : ColoredBox(
                 color: AppColors.primaryLight,
                 child: Icon(icon, color: AppColors.link, size: size * 0.5),

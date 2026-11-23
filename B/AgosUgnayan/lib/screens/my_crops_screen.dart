@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../models/listing.dart';
 import '../services/auth_service.dart';
+import '../services/listing_photo_service.dart';
 import '../services/listing_service.dart';
 import '../utils/app_exception.dart';
 import '../utils/paging.dart';
@@ -122,20 +123,24 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
       context,
       title: 'Delete this crop forever?',
       message:
-          '${listing.crop} will be deleted. You can still undo it right '
+          '${listing.headline} will be deleted. You can still undo it right '
           'after, from the message at the bottom.',
       confirmLabel: AppStrings.delete,
     );
     if (!confirmed || !mounted) return;
     try {
-      await _service.delete(listing.id);
+      // Keep the photo in memory first, so Undo can put it back.
+      final photo = listing.photoId == null
+          ? null
+          : await ListingPhotoService.instance.photoFor(listing.id);
+      await _service.delete(listing);
       if (!mounted) return;
       setState(() => _listings.remove(listing));
       showUndoMessage(
         context,
-        '${listing.crop} deleted.',
+        '${listing.headline} deleted.',
         onUndo: () async {
-          await _service.restore(listing);
+          await _service.restore(listing, photo: photo);
           _load();
         },
       );
@@ -148,6 +153,7 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
     final list = _listings.where((listing) {
       if (listing.status != _tab) return false;
       return matchesSearch(_search, [
+        listing.title,
         listing.crop,
         listing.town,
         listing.description,

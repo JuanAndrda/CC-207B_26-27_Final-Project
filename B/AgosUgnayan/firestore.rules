@@ -33,6 +33,20 @@ service cloud.firestore {
       allow update, delete: if signedIn() && resource.data.farmerId == request.auth.uid;
     }
 
+    // Farmers' own crop photos (we have no Storage on the free plan, so the
+    // shrunk JPEG is saved as text). Only the listing's owner writes it, and
+    // it must stay small. getAfter() checks the listing as it will be after
+    // the same batch, because a new listing and its photo are saved together.
+    match /listing_photos/{listingId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.farmerId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/listings/$(listingId)).data.farmerId == request.auth.uid
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 450000;
+      allow delete: if signedIn() && resource.data.farmerId == request.auth.uid;
+    }
+
     // Buyer requests: buyers create their own; only the owner edits or deletes.
     match /requests/{id} {
       allow read: if signedIn();

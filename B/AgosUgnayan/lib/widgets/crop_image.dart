@@ -1,12 +1,15 @@
-// A crop's picture box, like the website's CropImage. It starts as the green
-// placeholder with a leaf; when the crop's sample photo from Wikipedia loads,
-// the photo covers it. Cards and big photos say "Sample photo" so nobody
+// A crop's picture box, like the website's CropImage. The farmer's own photo
+// comes first. Without one, it starts as the green placeholder with a leaf;
+// when the crop's sample photo from Wikipedia loads, the photo covers it. Cards and big photos say "Sample photo" so nobody
 // takes it for the farmer's own harvest. Offline or on error, the
 // placeholder simply stays.
+
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import '../services/crop_photo_service.dart';
+import '../services/listing_photo_service.dart';
 import '../utils/theme.dart';
 
 /// How big the picture is shown.
@@ -22,8 +25,78 @@ enum CropImageSize {
 }
 
 /// The picture for [crop]. The box's size comes from its parent.
+/// With [photoId] (a listing with the farmer's own photo) that photo is
+/// shown; if it can't load, the crop's sample photo is shown instead.
 class CropImage extends StatelessWidget {
-  const CropImage({super.key, required this.crop, required this.size});
+  const CropImage({
+    super.key,
+    required this.crop,
+    required this.size,
+    this.photoId,
+  });
+
+  final String crop;
+  final CropImageSize size;
+  final String? photoId;
+
+  @override
+  Widget build(BuildContext context) {
+    final id = photoId;
+    if (id == null) return _SampleImage(crop: crop, size: size);
+    return FutureBuilder<Uint8List?>(
+      future: ListingPhotoService.instance.photoFor(id),
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes != null) return FarmerPhoto(bytes: bytes);
+        if (snapshot.connectionState == ConnectionState.done) {
+          return _SampleImage(crop: crop, size: size); // no photo after all
+        }
+        return _Placeholder(size: size); // still loading
+      },
+    );
+  }
+}
+
+/// The farmer's own photo, filling its box. Not labeled "Sample": it is
+/// the real harvest.
+class FarmerPhoto extends StatelessWidget {
+  const FarmerPhoto({super.key, required this.bytes});
+
+  final Uint8List bytes;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.memory(
+      bytes,
+      fit: BoxFit.cover,
+      gaplessPlayback: true, // no flicker when the card rebuilds
+      excludeFromSemantics: true, // the crop name is written next to it
+    );
+  }
+}
+
+/// The light green box with a leaf, shown while nothing else is there.
+class _Placeholder extends StatelessWidget {
+  const _Placeholder({required this.size});
+
+  final CropImageSize size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.primaryLight,
+      child: Icon(
+        Icons.eco_outlined,
+        color: AppColors.link,
+        size: size == CropImageSize.thumb ? 24 : 40,
+      ),
+    );
+  }
+}
+
+/// The crop's sample photo from Wikipedia over the placeholder.
+class _SampleImage extends StatelessWidget {
+  const _SampleImage({required this.crop, required this.size});
 
   final String crop;
   final CropImageSize size;
@@ -43,14 +116,7 @@ class CropImage extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // The placeholder is always underneath.
-            Container(
-              color: AppColors.primaryLight,
-              child: Icon(
-                Icons.eco_outlined,
-                color: AppColors.link,
-                size: size == CropImageSize.thumb ? 24 : 40,
-              ),
-            ),
+            _Placeholder(size: size),
             if (source != null)
               Image.network(
                 source,
@@ -101,15 +167,51 @@ class _SampleTag extends StatelessWidget {
 /// A big rounded crop photo with the photo credit under it, for the top of
 /// Listing details and Price details.
 class CropHero extends StatelessWidget {
-  const CropHero({super.key, required this.crop, this.note});
+  const CropHero({super.key, required this.crop, this.note, this.photoId});
 
   final String crop;
 
   /// Optional line above the credit, e.g. that this is not the farmer's photo.
   final String? note;
 
+  /// A listing with the farmer's own photo: show that instead.
+  final String? photoId;
+
   @override
   Widget build(BuildContext context) {
+    final id = photoId;
+    if (id == null) return _sampleHero();
+    return FutureBuilder<Uint8List?>(
+      future: ListingPhotoService.instance.photoFor(id),
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes == null) {
+          return snapshot.connectionState == ConnectionState.done
+              ? _sampleHero()
+              : const AspectRatio(aspectRatio: 16 / 9);
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizes.radiusCard),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: FarmerPhoto(bytes: bytes),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('Photo from the farmer', style: AppTextStyles.meta),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// The Wikipedia sample photo with its credit.
+  Widget _sampleHero() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

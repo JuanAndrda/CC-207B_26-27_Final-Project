@@ -2,6 +2,8 @@
 // field, a reference price hint, a "Discard changes?" warning, and the
 // F3 AI Listing Assistant box at the top.
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../models/ai_listing_suggestion.dart';
@@ -9,6 +11,7 @@ import '../models/listing.dart';
 import '../models/price_record.dart';
 import '../services/ai_service.dart';
 import '../services/auth_service.dart';
+import '../services/listing_photo_service.dart';
 import '../services/listing_service.dart';
 import '../services/price_service.dart';
 import '../utils/app_exception.dart';
@@ -27,6 +30,7 @@ import '../widgets/labeled_field.dart';
 import '../widgets/loading_button.dart';
 import '../widgets/notice_box.dart';
 import '../widgets/page_header.dart';
+import '../widgets/photo_picker_field.dart';
 import '../widgets/responsive_body.dart';
 
 /// Form to add a new crop listing, or edit [listing] when it is given.
@@ -45,6 +49,7 @@ class _CropFormScreenState extends State<CropFormScreen> {
   final _quantityController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _titleController = TextEditingController();
   String? _crop;
   String? _unit = 'kg';
   String? _town; // where the crop is; starts as the farmer's own town
@@ -56,6 +61,8 @@ class _CropFormScreenState extends State<CropFormScreen> {
   bool _descriptionByAi = false; // shows the AI-generated label there
   String? _describeError; // shown under the button when the AI fails
   List<PriceRecord> _prices = []; // for the reference price hint
+  Uint8List? _photo; // the farmer's own photo, already shrunk
+  bool _photoChanged = false; // added, changed or removed in this form
 
   bool get _isEditing => widget.listing != null;
 
@@ -69,6 +76,7 @@ class _CropFormScreenState extends State<CropFormScreen> {
       _quantityController.text = formatQuantity(listing.quantity);
       _priceController.text = listing.price.toStringAsFixed(2);
       _descriptionController.text = listing.description;
+      _titleController.text = listing.title;
       _harvestDate = listing.harvestDate;
       // Only a town from our list, or the dropdown would not know it.
       _town = kTowns.contains(listing.town) ? listing.town : null;
@@ -77,6 +85,13 @@ class _CropFormScreenState extends State<CropFormScreen> {
     final myTown = AuthService.currentUser?.town;
     _town ??= kTowns.contains(myTown) ? myTown : null;
     _loadPrices();
+    if (listing?.photoId != null) _loadPhoto(listing!.id);
+  }
+
+  /// Shows the photo this listing already has in the preview.
+  Future<void> _loadPhoto(String id) async {
+    final photo = await ListingPhotoService.instance.photoFor(id);
+    if (mounted && !_photoChanged) setState(() => _photo = photo);
   }
 
   @override
@@ -84,6 +99,7 @@ class _CropFormScreenState extends State<CropFormScreen> {
     _quantityController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -138,15 +154,21 @@ class _CropFormScreenState extends State<CropFormScreen> {
       createdAt: widget.listing?.createdAt ?? DateTime.now(),
       // Editing keeps the status (e.g. a sold-out crop stays sold out).
       status: widget.listing?.status ?? ListingStatus.active,
+      title: _titleController.text.trim(),
+      hasPhoto: widget.listing?.hasPhoto ?? false,
     );
     try {
-      await ListingService().save(listing);
+      await ListingService().save(
+        listing,
+        newPhoto: _photoChanged ? _photo : null,
+        removePhoto: _photoChanged && _photo == null,
+      );
       if (!mounted) return;
       showMessage(
         context,
         _isEditing
             ? 'Changes saved.'
-            : '${listing.crop} posted. Buyers can now see it.',
+            : '${listing.headline} posted. Buyers can now see it.',
       );
       // Navigator.pop closes the screen even when PopScope says canPop:
       // false. PopScope only stops the back button and back gesture.
@@ -279,6 +301,24 @@ class _CropFormScreenState extends State<CropFormScreen> {
                   ),
                 ),
                 const SizedBox(height: AppSizes.fieldGap),
+                // Optional name buyers will recognise, e.g. a stall name.
+                // The crop above stays the real crop for search and filters.
+                LabeledField(
+                  label: 'Listing title or stall name',
+                  help:
+                      'Leave empty to show only the crop name. The crop '
+                      'name is always shown too.',
+                  child: TextFormField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      hintText: "e.g. Juan's Food Stall",
+                    ),
+                    maxLength: 40,
+                    textCapitalization: TextCapitalization.words,
+                    validator: Validators.maxLength(40),
+                  ),
+                ),
+                const SizedBox(height: AppSizes.fieldGap),
                 LabeledField(
                   label: 'Quantity',
                   isRequired: true,
@@ -407,6 +447,23 @@ class _CropFormScreenState extends State<CropFormScreen> {
                   const SizedBox(height: AppSizes.small),
                   NoticeBox(message: _describeError!, kind: NoticeKind.error),
                 ],
+                const SizedBox(height: AppSizes.fieldGap),
+                LabeledField(
+                  label: 'Photo',
+                  help: _photo == null
+                      ? 'Without your own photo, buyers see a sample photo '
+                            'of the crop.'
+                      : 'Buyers will see your photo.',
+                  child: PhotoPickerField(
+                    crop: _crop,
+                    photo: _photo,
+                    onChanged: (photo) => setState(() {
+                      _photo = photo;
+                      _photoChanged = true;
+                      _hasChanges = true;
+                    }),
+                  ),
+                ),
                 const SizedBox(height: AppSizes.sectionGap),
                 // Main button, then Cancel (which asks first if something
                 // was changed), like the website.

@@ -127,6 +127,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       if (_minPrice != null && listing.price < _minPrice!) return false;
       if (_maxPrice != null && listing.price > _maxPrice!) return false;
       return matchesSearch(_search, [
+        listing.title,
         listing.crop,
         listing.farmerName,
         listing.town,
