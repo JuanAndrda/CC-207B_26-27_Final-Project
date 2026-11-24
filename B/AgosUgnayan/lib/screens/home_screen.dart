@@ -14,6 +14,7 @@ import '../utils/theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/brand_app_bar.dart';
 import '../widgets/home_nav.dart';
+import 'my_crops_screen.dart';
 import 'profile_screen.dart';
 
 /// One tab: which one it is, its label, icons and page.
@@ -146,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'My Crops',
         Icons.grass_outlined,
         Icons.grass,
-        _EmptyTab('My Crops'),
+        MyCropsScreen(),
       ),
       _Tab(
         HomeTab.orders,
