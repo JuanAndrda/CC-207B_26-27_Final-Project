@@ -1,0 +1,24 @@
+// Firestore security rules for AgosUgnayan.
+// Deploy with: firebase deploy --only firestore:rules
+// Rule of thumb: everyone must be logged in; people can only change their
+// own things; only the admin can write prices.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Profiles: anyone logged in can read (to show names); you can create
+    // and edit only your own, and you can't make yourself admin.
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if isMe(uid) && request.resource.data.role in ['farmer', 'buyer'];
+      allow update: if isMe(uid) && request.resource.data.role == resource.data.role;
+    }
+
+  }
+}
