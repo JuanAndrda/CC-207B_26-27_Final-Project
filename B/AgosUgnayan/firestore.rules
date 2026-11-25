@@ -18,6 +18,11 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create: if isMe(uid) && request.resource.data.role in ['farmer', 'buyer'];
       allow update: if isMe(uid) && request.resource.data.role == resource.data.role;
+
+      // Following: private to each user.
+      match /following/{targetId} {
+        allow read, write: if isMe(uid);
+      }
     }
 
     // Listings: farmers create their own; only the owner edits or deletes.

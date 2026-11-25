@@ -14,6 +14,8 @@ import '../utils/theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/brand_app_bar.dart';
 import '../widgets/home_nav.dart';
+import 'following_screen.dart';
+import 'marketplace_screen.dart';
 import 'my_crops_screen.dart';
 import 'price_list_screen.dart';
 import 'profile_screen.dart';
@@ -80,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Market',
           Icons.storefront_outlined,
           Icons.storefront,
-          _EmptyTab('Market'),
+          MarketplaceScreen(),
         ),
         // On phones it is opened from Home ("All prices"), so the bottom bar
         // keeps 5 tabs.
@@ -113,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Following',
           Icons.favorite_border,
           Icons.favorite,
-          _EmptyTab('Following'),
+          FollowingScreen(),
           onPhoneBar: false,
         ),
         _Tab(
