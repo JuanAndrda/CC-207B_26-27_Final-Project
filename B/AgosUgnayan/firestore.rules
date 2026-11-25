@@ -42,5 +42,10 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.farmerId == request.auth.uid;
     }
 
+    // Reference prices: everyone logged in reads, only the admin writes.
+    match /prices/{id} {
+      allow read: if signedIn();
+      allow write: if signedIn() && myRole() == 'admin';
+    }
   }
 }

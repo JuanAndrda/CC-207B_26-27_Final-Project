@@ -15,6 +15,7 @@ import '../widgets/app_sidebar.dart';
 import '../widgets/brand_app_bar.dart';
 import '../widgets/home_nav.dart';
 import 'my_crops_screen.dart';
+import 'price_list_screen.dart';
 import 'profile_screen.dart';
 
 /// One tab: which one it is, its label, icons and page.
@@ -61,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Prices',
           Icons.trending_up,
           Icons.trending_up,
-          _EmptyTab('Prices'),
+          PriceListScreen(),
         ),
       ];
     }
@@ -88,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Prices',
           Icons.trending_up,
           Icons.trending_up,
-          _EmptyTab('Prices'),
+          PriceListScreen(),
           onPhoneBar: false,
         ),
         _Tab(
@@ -139,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'Prices',
         Icons.trending_up,
         Icons.trending_up,
-        _EmptyTab('Prices'),
+        PriceListScreen(),
         onPhoneBar: false,
       ),
       _Tab(

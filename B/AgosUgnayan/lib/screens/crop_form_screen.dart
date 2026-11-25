@@ -8,10 +8,12 @@ import 'package:flutter/material.dart';
 
 import '../models/ai_listing_suggestion.dart';
 import '../models/listing.dart';
+import '../models/price_record.dart';
 import '../services/ai_service.dart';
 import '../services/auth_service.dart';
 import '../services/listing_photo_service.dart';
 import '../services/listing_service.dart';
+import '../services/price_service.dart';
 import '../utils/app_exception.dart';
 import '../utils/constants.dart';
 import '../utils/format.dart';
@@ -58,6 +60,7 @@ class _CropFormScreenState extends State<CropFormScreen> {
   bool _isDescribing = false; // waiting for the AI description
   bool _descriptionByAi = false; // shows the AI-generated label there
   String? _describeError; // shown under the button when the AI fails
+  List<PriceRecord> _prices = []; // for the reference price hint
   Uint8List? _photo; // the farmer's own photo, already shrunk
   bool _photoChanged = false; // added, changed or removed in this form
 
@@ -81,6 +84,7 @@ class _CropFormScreenState extends State<CropFormScreen> {
     }
     final myTown = AuthService.currentUser?.town;
     _town ??= kTowns.contains(myTown) ? myTown : null;
+    _loadPrices();
     if (listing?.photoId != null) _loadPhoto(listing!.id);
   }
 
@@ -97,6 +101,14 @@ class _CropFormScreenState extends State<CropFormScreen> {
     _descriptionController.dispose();
     _titleController.dispose();
     super.dispose();
+  }
+
+  /// Loads reference prices for the hint. If it fails we just show no hint.
+  Future<void> _loadPrices() async {
+    try {
+      final data = await PriceService().fetchRecent();
+      if (mounted) setState(() => _prices = data.records);
+    } catch (_) {}
   }
 
   /// Puts the AI's suggestion into the form. Fields the AI left empty keep
@@ -166,6 +178,20 @@ class _CropFormScreenState extends State<CropFormScreen> {
       setState(() => _isSaving = false);
       showError(context, friendlyMessage(e));
     }
+  }
+
+  /// The PSA reference price under the price field (website wording).
+  String _priceHint() {
+    if (_crop == null) {
+      return 'Choose a crop to see the latest PSA farmgate price.';
+    }
+    final latest = PriceService.latestFor(_crop!, _prices);
+    if (latest == null) return 'PSA has no farmgate price for this crop yet.';
+    final older = PriceService.isOlderPrice(_crop!, _prices)
+        ? ', an older price'
+        : '';
+    return 'For reference: PSA farmgate average, Iloilo Province, is '
+        '${formatPeso(latest.price)}/kg (${formatMonthKey(latest.month)}$older).';
   }
 
   /// Asks the AI for a short description of the chosen crop. If the
@@ -352,6 +378,7 @@ class _CropFormScreenState extends State<CropFormScreen> {
                 LabeledField(
                   label: 'Asking price per ${_unit ?? 'unit'}',
                   isRequired: true,
+                  help: _priceHint(),
                   child: TextFormField(
                     controller: _priceController,
                     decoration: InputDecoration(
