@@ -47,6 +47,14 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.farmerId == request.auth.uid;
     }
 
+    // Buyer requests: buyers create their own; only the owner edits or deletes.
+    match /requests/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && myRole() == 'buyer'
+        && request.resource.data.buyerId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.buyerId == request.auth.uid;
+    }
+
     // Chats: only the two people in the chat can read or write it.
     match /chats/{chatId} {
       allow read, update: if signedIn() && request.auth.uid in resource.data.participants;

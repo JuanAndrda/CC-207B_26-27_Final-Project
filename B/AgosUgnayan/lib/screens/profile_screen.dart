@@ -12,6 +12,7 @@ import '../utils/theme.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/info_row.dart';
 import '../widgets/responsive_body.dart';
+import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 
 /// Asks "Log out?" and, if confirmed, logs out and opens the login screen.
@@ -44,6 +45,14 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _logOut(BuildContext context) => confirmAndLogOut(context);
+
+  /// Opens Edit profile and redraws with the new values when it was saved.
+  Future<void> _edit() async {
+    final saved = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+    if (saved == true && mounted) setState(() {});
+  }
 
   /// "farmer" -> "Farmer".
   String _roleLabel(String role) => role[0].toUpperCase() + role.substring(1);
@@ -94,6 +103,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: AppSizes.fieldGap),
+            OutlinedButton.icon(
+              onPressed: _edit,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Edit profile'),
             ),
             if (user.about.isNotEmpty) ...[
               const SizedBox(height: AppSizes.fieldGap),
