@@ -15,8 +15,10 @@ import '../widgets/app_sidebar.dart';
 import '../widgets/brand_app_bar.dart';
 import '../widgets/home_nav.dart';
 import 'following_screen.dart';
+import 'inbox_screen.dart';
 import 'marketplace_screen.dart';
 import 'my_crops_screen.dart';
+import 'orders_screen.dart';
 import 'price_list_screen.dart';
 import 'profile_screen.dart';
 
@@ -106,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Orders',
           Icons.receipt_long_outlined,
           Icons.receipt_long,
-          _EmptyTab('Orders'),
+          OrdersScreen(),
         ),
         // On phones it is opened from the Home tile "Crops and farmers you
         // follow", so the bottom bar keeps 5 tabs.
@@ -123,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Messages',
           Icons.chat_bubble_outline,
           Icons.chat_bubble,
-          _EmptyTab('Messages'),
+          InboxScreen(),
         ),
       ];
     }
@@ -157,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'Orders',
         Icons.receipt_long_outlined,
         Icons.receipt_long,
-        _EmptyTab('Orders'),
+        OrdersScreen(),
       ),
       _Tab(
         HomeTab.demand,
@@ -171,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'Messages',
         Icons.chat_bubble_outline,
         Icons.chat_bubble,
-        _EmptyTab('Messages'),
+        InboxScreen(),
       ),
     ];
   }

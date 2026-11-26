@@ -13,6 +13,7 @@ import '../utils/theme.dart';
 import '../widgets/async_state_view.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/listing_card.dart';
+import '../widgets/message_button.dart';
 import '../widgets/page_header.dart';
 import '../widgets/responsive_body.dart';
 import 'listing_detail_screen.dart';
@@ -117,6 +118,12 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           ],
           const SizedBox(height: AppSizes.fieldGap),
           if (isBuyer) ...[
+            MessageButton(
+              otherId: farmer.id,
+              otherName: farmer.name,
+              label: 'Message ${farmer.name}',
+            ),
+            const SizedBox(height: AppSizes.small),
             FollowButton(
               targetId: farmer.id,
               type: FollowType.farmer,

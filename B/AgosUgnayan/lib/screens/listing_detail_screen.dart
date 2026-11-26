@@ -15,7 +15,9 @@ import '../widgets/crop_image.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/info_row.dart';
 import '../widgets/listing_card.dart';
+import '../widgets/message_button.dart';
 import '../widgets/page_header.dart';
+import '../widgets/request_to_buy_sheet.dart';
 import '../widgets/responsive_body.dart';
 import '../widgets/stock_summary.dart';
 import 'farmer_profile_screen.dart';
@@ -55,6 +57,7 @@ class _ListingDetails extends StatelessWidget {
     final me = AuthService.currentUser!;
     final isMine = listing.farmerId == me.id;
     final amount = '${formatQuantity(listing.available)} ${listing.unit}';
+    final stock = listing.stockAt(DateTime.now());
 
     return Scaffold(
       appBar: AppBar(title: Text(listing.headline)),
@@ -103,6 +106,32 @@ class _ListingDetails extends StatelessWidget {
             const SizedBox(height: 12),
             // Buyers get actions; a farmer looking at their own crop does not.
             if (!isMine && me.isBuyer) ...[
+              FilledButton.icon(
+                onPressed: stock == StockState.available && listing.isActive
+                    ? () => showRequestToBuySheet(context, listing)
+                    : null,
+                icon: const Icon(Icons.shopping_basket_outlined),
+                label: const Text('Request to buy'),
+              ),
+              if (stock != StockState.available || !listing.isActive) ...[
+                const SizedBox(height: 4),
+                Text(
+                  stock == StockState.fullyReserved
+                      ? 'All of it is held for other buyers right now. It '
+                            'may come back if a buyer cancels.'
+                      : 'This crop is sold out.',
+                  style: AppTextStyles.meta,
+                ),
+              ],
+              const SizedBox(height: AppSizes.small),
+              MessageButton(
+                otherId: listing.farmerId,
+                otherName: listing.farmerName,
+                label: 'Message farmer',
+                firstMessage:
+                    'Hi! Is your ${listing.crop} ($amount) still available?',
+              ),
+              const SizedBox(height: AppSizes.small),
               Row(
                 children: [
                   Expanded(
