@@ -144,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
         onFieldSubmitted: (_) => _logIn(),
       ),
       const SizedBox(height: AppSizes.sectionGap),
-      LoadingButton(label: 'Log in', isLoading: _isLoading, onPressed: _logIn),
+      LoadingButton(label: 'Sign In', isLoading: _isLoading, onPressed: _logIn),
       const SizedBox(height: AppSizes.small),
       Wrap(
         alignment: WrapAlignment.center,

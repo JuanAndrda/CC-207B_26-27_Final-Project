@@ -9,12 +9,20 @@
 import 'package:flutter/material.dart';
 
 import '../models/app_user.dart';
+import '../models/assistant.dart';
+import '../services/assistant_controller.dart';
 import '../services/auth_service.dart';
+import '../models/order.dart';
+import '../services/listing_service.dart';
+import '../services/order_service.dart';
+import '../services/request_service.dart';
 import '../utils/theme.dart';
 import '../widgets/app_sidebar.dart';
 import '../widgets/brand_app_bar.dart';
 import '../widgets/home_nav.dart';
 import 'buyer_demand_screen.dart';
+import 'buyer_home_screen.dart';
+import 'farmer_home_screen.dart';
 import 'following_screen.dart';
 import 'inbox_screen.dart';
 import 'marketplace_screen.dart';
@@ -57,7 +65,40 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
+  /// Small numbers next to some tabs (e.g. open buyer requests).
+  final Map<HomeTab, int> _counts = {};
+
   late final List<_Tab> _tabs = _tabsForRole(AuthService.currentUser);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCounts();
+    // The AI assistant is for buyers only.
+    if (AuthService.currentUser?.isBuyer ?? false) {
+      AssistantController.instance.enable(_openTab);
+      AssistantController.instance.setTab(_assistantScreen(_tabs.first.id));
+    }
+  }
+
+  @override
+  void dispose() {
+    if (AuthService.currentUser?.isBuyer ?? false) {
+      AssistantController.instance.disable(); // forget the chat on log out
+    }
+    super.dispose();
+  }
+
+  /// Which assistant page a tab is (for its suggested questions).
+  static AssistantScreen _assistantScreen(HomeTab tab) => switch (tab) {
+    HomeTab.market => AssistantScreen.market,
+    HomeTab.prices => AssistantScreen.prices,
+    HomeTab.requests => AssistantScreen.requests,
+    HomeTab.orders => AssistantScreen.orders,
+    HomeTab.following => AssistantScreen.following,
+    HomeTab.messages => AssistantScreen.messages,
+    _ => AssistantScreen.home,
+  };
 
   /// Picks the tabs for the logged-in user's role (same order as the website).
   static List<_Tab> _tabsForRole(AppUser? user) {
@@ -79,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Home',
           Icons.home_outlined,
           Icons.home,
-          _EmptyTab('Home'),
+          BuyerHomeScreen(),
         ),
         _Tab(
           HomeTab.market,
@@ -137,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'Home',
         Icons.home_outlined,
         Icons.home,
-        _EmptyTab('Home'),
+        FarmerHomeScreen(),
       ),
       // On phones it is opened from Home ("All prices"), so the bottom bar
       // keeps 5 tabs.
@@ -180,8 +221,53 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
   }
 
+  /// Counts for the tab badges. If loading fails, the badges just stay
+  /// hidden; the pages themselves show their own errors.
+  Future<void> _loadCounts() async {
+    final me = AuthService.currentUser;
+    if (me == null) return;
+    try {
+      if (me.isFarmer) {
+        final results = await Future.wait([
+          ListingService().fetchByFarmer(me.id),
+          RequestService().fetchOpen(),
+        ]);
+        final myCrops = {
+          for (final l in results[0] as List)
+            if (l.isActive as bool) l.crop,
+        };
+        final demand = (results[1] as List)
+            .where((r) => myCrops.contains(r.crop))
+            .length;
+        if (mounted) setState(() => _counts[HomeTab.demand] = demand);
+        await _loadOrderCount(me.id, OrderState.pending);
+      } else if (me.isBuyer) {
+        final mine = await RequestService().fetchByBuyer(me.id);
+        // The badge counts requests that need the buyer: expired, or
+        // expiring today or tomorrow.
+        final attention = mine
+            .where((r) => r.isExpired || r.expiresSoon())
+            .length;
+        if (mounted) setState(() => _counts[HomeTab.requests] = attention);
+        await _loadOrderCount(me.id, OrderState.offered);
+      }
+    } catch (_) {}
+  }
+
+  /// The Orders badge: orders waiting for my answer (farmers: buyers'
+  /// requests; buyers: farmers' offers).
+  Future<void> _loadOrderCount(String myId, OrderState waitingForMe) async {
+    final orders = await OrderService().watchMine(myId).first;
+    final count = orders.where((o) => o.state == waitingForMe).length;
+    if (mounted) setState(() => _counts[HomeTab.orders] = count);
+  }
+
   void _select(int index) {
     setState(() => _selectedIndex = index);
+    if (AuthService.currentUser?.isBuyer ?? false) {
+      AssistantController.instance.setTab(_assistantScreen(_tabs[index].id));
+    }
+    _loadCounts(); // keep the badges fresh
   }
 
   /// Opens [tab] if this role has it (used by HomeNav).
@@ -223,6 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     label: tab.label,
                     icon: tab.icon,
                     selectedIcon: tab.selectedIcon,
+                    count: _counts[tab.id],
                   ),
               ],
               selectedIndex: _selectedIndex,
@@ -262,8 +349,8 @@ class _HomeScreenState extends State<HomeScreen> {
               destinations: [
                 for (final tab in _tabs)
                   NavigationRailDestination(
-                    icon: Icon(tab.icon),
-                    selectedIcon: Icon(tab.selectedIcon),
+                    icon: _withBadge(tab, Icon(tab.icon)),
+                    selectedIcon: _withBadge(tab, Icon(tab.selectedIcon)),
                     label: Text(tab.label),
                   ),
               ],
@@ -293,8 +380,8 @@ class _HomeScreenState extends State<HomeScreen> {
           destinations: [
             for (final tab in barTabs)
               NavigationDestination(
-                icon: Icon(tab.icon),
-                selectedIcon: Icon(tab.selectedIcon),
+                icon: _withBadge(tab, Icon(tab.icon)),
+                selectedIcon: _withBadge(tab, Icon(tab.selectedIcon)),
                 label: tab.label,
               ),
           ],
@@ -302,32 +389,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
 
-/// A tab whose page is not built yet: a construction icon and its name.
-/// Each progress stage swaps one of these for the real screen.
-class _EmptyTab extends StatelessWidget {
-  const _EmptyTab(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.construction_outlined,
-            size: 48,
-            color: AppColors.textMuted,
-          ),
-          const SizedBox(height: 12),
-          Text(title, style: AppTextStyles.sectionTitle),
-          const SizedBox(height: 4),
-          const Text('Coming soon', style: AppTextStyles.meta),
-        ],
-      ),
+  /// Adds the orange count to a tab icon when there is one.
+  Widget _withBadge(_Tab tab, Widget icon) {
+    final count = _counts[tab.id] ?? 0;
+    if (count == 0) return icon;
+    return Badge(
+      label: Text(count > 99 ? '99+' : '$count'),
+      backgroundColor: AppColors.accent,
+      textColor: AppColors.accentInk,
+      child: icon,
     );
   }
 }

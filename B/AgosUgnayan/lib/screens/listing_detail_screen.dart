@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 
 import '../models/followed_item.dart';
 import '../models/listing.dart';
+import '../models/assistant.dart';
+import '../services/assistant_controller.dart';
 import '../services/auth_service.dart';
 import '../services/listing_service.dart';
 import '../utils/format.dart';
@@ -41,7 +43,11 @@ class ListingDetailScreen extends StatelessWidget {
             body: const Center(child: Text('This crop listing was deleted.')),
           );
         }
-        return _ListingDetails(listing: live);
+        // Tells the AI assistant which listing is open.
+        return AssistantScope(
+          page: AssistantPage(AssistantScreen.listing, listing: live),
+          child: _ListingDetails(listing: live),
+        );
       },
     );
   }

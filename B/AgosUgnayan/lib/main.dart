@@ -10,9 +10,11 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'screens/start_screen.dart';
+import 'services/assistant_controller.dart';
 import 'utils/app_logger.dart';
 import 'utils/strings.dart';
 import 'utils/theme.dart';
+import 'widgets/assistant_layer.dart';
 
 void main() {
   // runZonedGuarded catches errors from async code that nothing else caught.
@@ -86,6 +88,12 @@ class AgosUgnayanApp extends StatelessWidget {
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
+      // The buyer AI assistant sits above every page (it shows only while
+      // a buyer is logged in). The key lets its answer cards open pages;
+      // the observer hides its button while a sheet or dialog is open.
+      navigatorKey: AssistantController.navigatorKey,
+      navigatorObservers: [AssistantRouteObserver()],
+      builder: (context, child) => AssistantLayer(child: child!),
       // The app fills the whole window. Each screen limits its own content
       // width on big screens (see widgets/responsive_body.dart).
       home: StartScreen(firebaseReady: firebaseReady),

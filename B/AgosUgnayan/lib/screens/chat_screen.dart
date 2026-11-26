@@ -4,6 +4,9 @@
 
 import 'package:flutter/material.dart';
 
+import '../models/assistant.dart';
+import '../services/assistant_controller.dart';
+
 import '../models/chat.dart';
 import '../models/order.dart';
 import '../services/auth_service.dart';
@@ -98,7 +101,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     for (final o in orderSnapshot.data ?? <CropOrder>[])
                       o.id: o,
                   };
-                  return _buildMessages(orders);
+                  // The AI assistant knows the newest order in this chat.
+                  final newest = orderSnapshot.data?.firstOrNull;
+                  return AssistantScope(
+                    page: AssistantPage(AssistantScreen.chat, order: newest),
+                    child: _buildMessages(orders),
+                  );
                 },
               ),
             ),
