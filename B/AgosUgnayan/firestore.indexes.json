@@ -1,7 +1,4 @@
 {
-<<<<<<< Updated upstream
-  "indexes": [],
-=======
   "indexes": [
     {
       "collectionGroup": "listings",
@@ -64,6 +61,5 @@
       ]
     }
   ],
->>>>>>> Stashed changes
   "fieldOverrides": []
 }

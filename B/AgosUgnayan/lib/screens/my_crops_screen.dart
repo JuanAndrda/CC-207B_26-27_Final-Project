@@ -23,6 +23,7 @@ import '../widgets/list_tools.dart';
 import '../widgets/listing_card.dart';
 import '../widgets/page_header.dart';
 import 'crop_form_screen.dart';
+import 'listing_detail_screen.dart';
 
 enum _Sort { newest, priceHigh, priceLow, name }
 
@@ -291,7 +292,11 @@ class _MyCropsScreenState extends State<MyCropsScreen> {
       listing: listing,
       showFarmer: false,
       showStock: true,
-      onTap: () => _openForm(listing),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ListingDetailScreen(listing: listing),
+        ),
+      ),
       trailing: PopupMenuButton<String>(
         tooltip: 'More actions',
         onSelected: (action) => switch (action) {
